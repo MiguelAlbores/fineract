@@ -1,7 +1,7 @@
 Apache Fineract: A Platform for Microfinance
 ============
 
-The next evolution of Apache Fineract focuses on being faster, lighter and cheaper to change (than the existing Mifos) so that it is more responsive to the needs of Microfinance Institutions and Integrators.
+The next evolution of Apache Fineract focuses on being faster, lighter and cheaper to change (than the existing Mifos) so that it is more responsive to the needs of Microfinance Institutions and Integrators. 
 
 Requirements
 ============
