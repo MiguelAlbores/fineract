@@ -30,7 +30,7 @@ Instructions to build war file
 3. Run `./gradlew clean war` or `./gradlew build` to build deployable war file which will be created at build/libs directory.
 
 
-Instructions to execute Integration tests
+Instructions to execute Integration tests 
 ============
 1. Login to mysql DB using `mysql -u root -pmysql`
 2. Create the mifosplatform-tenants database using `CREATE DATABASE mifosplatform-tenants`.
