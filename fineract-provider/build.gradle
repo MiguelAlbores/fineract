@@ -107,6 +107,8 @@ rat {
     '**/.gitignore',
     '**/.gitkeep',
 	'**/*.iml',
+    '**/*.ipr',
+    '**/*.iws',
 	//Notice files
 	'**/NOTICE_RELEASE',
 	'**/NOTICE_SOURCE',	
@@ -371,6 +373,10 @@ import groovy.sql.Sql
 
 repositories {
     mavenCentral()
+    jcenter()
+    maven {
+        url "${project.pentahoRepoURL}"
+    }
 }
 configurations {
     driver
