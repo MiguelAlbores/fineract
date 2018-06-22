@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+ext.pentahoRepoURL="http://nexus.pentaho.org/content/repositories/omni/"
+
 dependencies {
         def tomcatVersion = '7.0.54'
         tomcat "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}",
