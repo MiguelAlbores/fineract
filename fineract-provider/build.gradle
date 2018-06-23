@@ -246,6 +246,11 @@ task dist(type:Zip){
         include '*'
         into('api-docs')
     }
+    from('src/main/pentahoReports/') {
+        fileMode = 0755
+        include '*'
+        into('pentahoReports')
+    }
     from('../fineract-db/') {
         fileMode = 0755
         include '*.sql'
@@ -259,6 +264,18 @@ task dist(type:Zip){
     
     from war.outputs.files
     into(baseName + '-' + version)
+}
+
+task deployPentahoReports() {
+    def pentahoReportDir = System.properties['user.home'] + System.properties['file.separator'] + '.mifosx' + System.properties['file.separator'] + 'pentahoReports'
+    copy {
+        from "src/main/pentahoReports"
+        into pentahoReportDir
+    }
+
+    doLast {
+        println ':deployPentahoReports - moving pentaho reports under: ' + pentahoReportDir
+    }
 }
 
 compileJava{
