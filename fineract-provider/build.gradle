@@ -109,6 +109,9 @@ rat {
 	'**/*.iml',
     '**/*.ipr',
     '**/*.iws',
+    '**/*.prpt',
+    '**/*.properties',
+    '**/*.PROPERTIES',
 	//Notice files
 	'**/NOTICE_RELEASE',
 	'**/NOTICE_SOURCE',	
