@@ -107,6 +107,11 @@ rat {
     '**/.gitignore',
     '**/.gitkeep',
 	'**/*.iml',
+    '**/*.ipr',
+    '**/*.iws',
+    '**/*.prpt',
+    '**/*.properties',
+    '**/*.PROPERTIES',
 	//Notice files
 	'**/NOTICE_RELEASE',
 	'**/NOTICE_SOURCE',	
@@ -244,6 +249,11 @@ task dist(type:Zip){
         include '*'
         into('api-docs')
     }
+    from('src/main/pentahoReports/') {
+        fileMode = 0755
+        include '*'
+        into('pentahoReports')
+    }
     from('../fineract-db/') {
         fileMode = 0755
         include '*.sql'
@@ -257,6 +267,18 @@ task dist(type:Zip){
     
     from war.outputs.files
     into(baseName + '-' + version)
+}
+
+task deployPentahoReports() {
+    def pentahoReportDir = System.properties['user.home'] + System.properties['file.separator'] + '.mifosx' + System.properties['file.separator'] + 'pentahoReports'
+    copy {
+        from "src/main/pentahoReports"
+        into pentahoReportDir
+    }
+
+    doLast {
+        println ':deployPentahoReports - moving pentaho reports under: ' + pentahoReportDir
+    }
 }
 
 compileJava{
@@ -371,6 +393,10 @@ import groovy.sql.Sql
 
 repositories {
     mavenCentral()
+    jcenter()
+    maven {
+        url "${project.pentahoRepoURL}"
+    }
 }
 configurations {
     driver
