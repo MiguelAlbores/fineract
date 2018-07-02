@@ -21,6 +21,14 @@ package org.apache.fineract.catalogue.bank_acc.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface BankAccountRepository extends JpaRepository<BankAccount, BankAccountPK>, JpaSpecificationExecutor<BankAccount> {
+
+    @Modifying
+    @Query(value = "DELETE FROM BankAccount ba where ba.id.idBank=?1")
+    public void deleteByBankId(Long bankId);
 }
