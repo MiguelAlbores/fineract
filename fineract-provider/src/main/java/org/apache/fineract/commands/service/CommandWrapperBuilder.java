@@ -3132,4 +3132,55 @@ public class CommandWrapperBuilder {
         this.href = "/twofactor/configure";
         return this;
     }
+
+    public CommandWrapperBuilder createBank() {
+        this.actionName = "CREATE";
+        this.entityName = "BANK";
+        this.href = "/banks";
+        this.entityId = null;
+        return this;
+    }
+
+    public CommandWrapperBuilder updateBank(Long bankId) {
+        this.actionName = "UPDATE";
+        this.entityName = "BANK";
+        this.entityId = bankId;
+        this.href = "/banks/" + bankId;
+        return this;
+    }
+
+    public CommandWrapperBuilder deleteBank(Long bankId) {
+        this.actionName = "DELETE";
+        this.entityName = "BANK";
+        this.href = "/banks/" + bankId;
+        this.entityId = bankId;
+        return this;
+    }
+
+    public CommandWrapperBuilder createBankAccount(Long bankId) {
+        this.actionName = "CREATE";
+        this.entityName = "BANK_ACCOUNT";
+        this.href = "/bank/" + bankId + "/accounts";
+        this.entityId = bankId;
+        this.subentityId = null;
+        return this;
+    }
+
+    public CommandWrapperBuilder updateBankAccount(Long bankId, Long glAccountId) {
+        this.actionName = "UPDATE";
+        this.entityName = "BANK_ACCOUNT";
+        this.href = "/bank/" + bankId + "/accounts/" + glAccountId;
+        this.subentityId = glAccountId;
+        this.entityId = bankId;
+        return this;
+    }
+
+    public CommandWrapperBuilder deleteBankAccount(Long bankId, Long glAccountId) {
+        this.actionName = "DELETE";
+        this.entityName = "BANK_ACCOUNT";
+        this.href = "/bank/" + bankId + "/accounts/" + glAccountId;
+        this.subentityId = glAccountId;
+        this.entityId = bankId;
+        return this;
+    }
 }
