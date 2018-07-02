@@ -7,4 +7,5 @@ build
 *.iml
 *.ipr
 *.iws
+*.ids
 *.DS_Store
