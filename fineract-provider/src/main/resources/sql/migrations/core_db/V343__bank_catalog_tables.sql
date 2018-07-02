@@ -25,7 +25,7 @@ CREATE TABLE `catalogue_bank` (
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_by` INT NULL,
-  `updated_at` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP,
   `external_code` VARCHAR(255) NULL,
   PRIMARY KEY (`id`));
 
@@ -40,7 +40,7 @@ CREATE TABLE `bank_acc_account` (
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_by` INT NULL,
-  `updated_at` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP,
   PRIMARY KEY (`id_bank`, `id_gl_account`),
   INDEX `fk_bank_acc_account_idx` (`id_gl_account` ASC),
   CONSTRAINT `fk_bank_acc_account_acc`
