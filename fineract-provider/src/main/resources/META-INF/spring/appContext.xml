@@ -101,4 +101,5 @@
 	</bean>
 
 	<import resource="spmContext.xml"/>
+	<import resource="customCode.xml"/>
 </beans>
