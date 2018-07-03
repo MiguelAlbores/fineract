@@ -78,6 +78,7 @@ public class Bank extends AbstractPersistableCustom<Long> {
 
     public Map<String, Object> update(JsonCommand command, AppUser authUser) {
         this.updatedBy = authUser;
+        this.updatedAt = new Date();
         final Map<String, Object> actualChanges = new LinkedHashMap<>(3);
 
         final String nameParamName = BankJsonInputParams.NAME.getValue();

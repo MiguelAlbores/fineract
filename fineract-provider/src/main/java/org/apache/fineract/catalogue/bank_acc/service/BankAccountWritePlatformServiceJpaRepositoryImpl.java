@@ -32,6 +32,7 @@ import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -48,6 +49,7 @@ public class BankAccountWritePlatformServiceJpaRepositoryImpl implements BankAcc
         this.context = context;
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult createBankAccount(Long bankId, JsonCommand command) {
         try {
@@ -61,6 +63,7 @@ public class BankAccountWritePlatformServiceJpaRepositoryImpl implements BankAcc
         }
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult updateBankAccount(Long bankId, Long glAccountId, JsonCommand command) {
         try {
@@ -79,6 +82,7 @@ public class BankAccountWritePlatformServiceJpaRepositoryImpl implements BankAcc
         }
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult deleteBankAccount(Long bankId, Long glAccountId, JsonCommand command) {
         BankAccountPK idBankAccount = new BankAccountPK(bankId, glAccountId);
