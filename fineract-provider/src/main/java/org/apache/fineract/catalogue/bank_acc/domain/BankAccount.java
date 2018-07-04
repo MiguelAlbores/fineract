@@ -88,6 +88,7 @@ public class BankAccount {
 
     public Map<String, Object> update(JsonCommand command, AppUser currentUser) {
         this.updatedBy = currentUser;
+        this.updatedAt = new Date();
         final Map<String, Object> actualChanges = new LinkedHashMap<>(3);
 
         final String nameParamName = BankAccountJsonInputParams.NAME.getValue();

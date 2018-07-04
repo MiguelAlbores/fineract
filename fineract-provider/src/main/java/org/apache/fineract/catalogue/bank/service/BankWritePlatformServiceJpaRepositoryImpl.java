@@ -24,6 +24,7 @@ import org.apache.fineract.catalogue.bank.domain.Bank;
 import org.apache.fineract.catalogue.bank.domain.BankRepository;
 import org.apache.fineract.catalogue.bank.exception.BankNotFoundException;
 import org.apache.fineract.catalogue.bank.serialization.BankCommandFromApiJsonDeserializer;
+import org.apache.fineract.catalogue.bank_acc.domain.BankAccountRepository;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
@@ -44,16 +45,17 @@ public class BankWritePlatformServiceJpaRepositoryImpl implements BankWritePlatf
     private final static Logger logger = LoggerFactory.getLogger(GLAccountWritePlatformServiceJpaRepositoryImpl.class);
     private final BankCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final BankRepository bankRepository;
+    private final BankAccountRepository bankAccountRepository;
     private final PlatformSecurityContext context;
 
     @Autowired
-    public BankWritePlatformServiceJpaRepositoryImpl(BankCommandFromApiJsonDeserializer fromApiJsonDeserializer,
-                                                     BankRepository bankRepository,
-                                                     PlatformSecurityContext context) {
+    public BankWritePlatformServiceJpaRepositoryImpl(BankCommandFromApiJsonDeserializer fromApiJsonDeserializer, BankRepository bankRepository, BankAccountRepository bankAccountRepository, PlatformSecurityContext context) {
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.bankRepository = bankRepository;
+        this.bankAccountRepository = bankAccountRepository;
         this.context = context;
     }
+
 
     @Transactional
     @Override
@@ -90,6 +92,7 @@ public class BankWritePlatformServiceJpaRepositoryImpl implements BankWritePlatf
     @Transactional
     @Override
     public CommandProcessingResult deleteBank(Long bankId, JsonCommand command) {
+        this.bankAccountRepository.deleteByBankId(bankId);
         this.bankRepository.delete(bankId);
 
         return new CommandProcessingResultBuilder() //
