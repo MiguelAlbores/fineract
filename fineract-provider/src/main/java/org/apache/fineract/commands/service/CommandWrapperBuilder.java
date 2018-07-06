@@ -3183,4 +3183,20 @@ public class CommandWrapperBuilder {
         this.entityId = bankId;
         return this;
     }
+
+    public CommandWrapperBuilder createLoanBonusConfiguration() {
+        this.actionName = "CREATE";
+        this.entityName = "LOAN_BONUS_CONFIG";
+        this.href = "/loan/bonus/configuration";
+        this.entityId = null;
+        return this;
+    }
+
+    public CommandWrapperBuilder updateLoanBonusConfiguration(Long id) {
+        this.actionName = "UPDATE";
+        this.entityName = "LOAN_BONUS_CONFIG";
+        this.href = "/loan/bonus/configuration/" + id;
+        this.entityId = id;
+        return this;
+    }
 }
