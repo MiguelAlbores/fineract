@@ -26,7 +26,8 @@ public enum LoanBonusConfigJsonInputParameters {
     DAYS_IN_ARREAR("daysInArrear"), DAYS_TO_COLLECT_BONUS("daysToCollectBonus"),
     GL_ACCOUNT_TO_DEBIT("glAccountToDebitId"), GL_ACCOUNT_TO_CREDIT("glAccountToCreditId"),
     CYCLES_SETTINGS("cycles"), LOAN_CYCLE_FROM_VALUE("fromValue"),
-    LOAN_CYCLE_TO_VALUE("toValue"),LOAN_CYCLE_PERCENT_VALUE("percentValue");
+    LOAN_CYCLE_TO_VALUE("toValue"),LOAN_CYCLE_PERCENT_VALUE("percentValue"),
+    LOAN_PRODUCT_ID("loanProductId");
     private final String value;
 
     private LoanBonusConfigJsonInputParameters(final String value) {

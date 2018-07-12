@@ -27,6 +27,7 @@ import org.apache.fineract.accounting.glaccount.domain.GLAccount;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.organisation.loan_bonus_configuration.api.LoanBonusConfigJsonInputParameters;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.useradministration.domain.AppUser;
 
 import javax.persistence.*;
@@ -44,7 +45,7 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
     @JoinColumn(name = "gl_account_to_debit")
     private Long glAccountToDebit;
 
-    @Column(name = "gl_account_to_debit")
+    @Column(name = "gl_account_to_credit")
     private Long glAccountToCredit;
 
     @JsonManagedReference
@@ -68,7 +69,10 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
     @JoinColumn(name = "lastmodifiedby_id", nullable = true)
     private AppUser updatedBy;
 
-    public LoanBonusConfiguration(Long daysInArrear, Long daysToCollectBonus, Long glAccountToDebit, Long glAccountToCredit, List<LoanBonusConfigurationCycle> cycles, AppUser createdBy) {
+    @Column(name = "loan_product_id")
+    private Long loanProductId;
+
+    public LoanBonusConfiguration(Long daysInArrear, Long daysToCollectBonus, Long glAccountToDebit, Long glAccountToCredit, List<LoanBonusConfigurationCycle> cycles, AppUser createdBy, Long loanProductId) {
         this.daysInArrear = daysInArrear;
         this.daysToCollectBonus = daysToCollectBonus;
         this.glAccountToDebit = glAccountToDebit;
@@ -76,13 +80,16 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
         this.cycles = cycles;
         this.createdAt = new Date();
         this.createdBy = createdBy;
+        this.loanProductId = loanProductId;
     }
 
     public static LoanBonusConfiguration fromJson(JsonCommand command, AppUser authUser) {
+        final Long loanProductId = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.LOAN_PRODUCT_ID.getValue());
         final Long daysInArrear = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.DAYS_IN_ARREAR.getValue());
         final Long daysToCollectBonus = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.DAYS_TO_COLLECT_BONUS.getValue());
         final Long glAccountDebit = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.GL_ACCOUNT_TO_DEBIT.getValue());
         final Long glAccountCredit = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.GL_ACCOUNT_TO_CREDIT.getValue());
+        System.out.println(glAccountCredit);
         JsonArray jsonArray = command.arrayOfParameterNamed(LoanBonusConfigJsonInputParameters.CYCLES_SETTINGS.getValue());
         List<LoanBonusConfigurationCycle> cycles = new ArrayList<LoanBonusConfigurationCycle>();
         if(jsonArray != null) {
@@ -94,7 +101,7 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
                 cycles.add(new LoanBonusConfigurationCycle(fromValue, toValue, percentValue, authUser));
             }
         }
-        return new LoanBonusConfiguration(daysInArrear, daysToCollectBonus, glAccountDebit, glAccountCredit, cycles, authUser);
+        return new LoanBonusConfiguration(daysInArrear, daysToCollectBonus, glAccountDebit, glAccountCredit, cycles, authUser, loanProductId);
     }
 
     public Map<String, Object> update(JsonCommand command, AppUser updatedBy) {
@@ -107,6 +114,13 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
             final Long newValue = command.longValueOfParameterNamed(daysInArrearParamName);
             actualChanges.put(daysInArrearParamName, newValue);
             this.daysInArrear = newValue;
+        }
+
+        final String loanProductIdParamName = LoanBonusConfigJsonInputParameters.LOAN_PRODUCT_ID.getValue();
+        if (command.isChangeInLongParameterNamed(loanProductIdParamName, this.loanProductId)) {
+            final Long newValue = command.longValueOfParameterNamed(loanProductIdParamName);
+            actualChanges.put(loanProductIdParamName, newValue);
+            this.loanProductId = newValue;
         }
 
         final String daysToCollectBonusParamName = LoanBonusConfigJsonInputParameters.DAYS_TO_COLLECT_BONUS.getValue();
@@ -127,7 +141,7 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
         if (command.isChangeInLongParameterNamed(glAccountToCreditParamName, this.glAccountToCredit)) {
             final Long newValue = command.longValueOfParameterNamed(glAccountToCreditParamName);
             actualChanges.put(glAccountToCreditParamName, newValue);
-            this.glAccountToDebit = newValue;
+            this.glAccountToCredit = newValue;
         }
 
         JsonArray jsonArray = command.arrayOfParameterNamed(LoanBonusConfigJsonInputParameters.CYCLES_SETTINGS.getValue());
@@ -223,5 +237,9 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
 
     public void setUpdatedBy(AppUser updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public Long getLoanProductId() {
+        return loanProductId;
     }
 }
