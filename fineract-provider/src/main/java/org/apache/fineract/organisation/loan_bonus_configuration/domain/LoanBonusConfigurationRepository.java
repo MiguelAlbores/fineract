@@ -31,6 +31,5 @@ import java.util.List;
 @Repository
 public interface LoanBonusConfigurationRepository extends JpaRepository<LoanBonusConfiguration, Long>, JpaSpecificationExecutor<LoanBonusConfiguration> {
 
-    @Query(value = "SELECT lb FROM LoanBonusConfiguration lb")
-    public Page<LoanBonusConfiguration> getConfiguration(Pageable pageable);
+    public LoanBonusConfiguration getLoanBonusConfigurationByLoanProductId(Long loanProductId);
 }

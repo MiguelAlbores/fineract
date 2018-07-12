@@ -55,10 +55,12 @@ public class LoanBonusConfigurationApiResource {
         this.readPlatformService = readPlatformService;
     }
 
+
+    @Path("{loanProductId}")
     @GET
     @Produces({ MediaType.APPLICATION_JSON })
-    public String retrieveConfig(@Context final UriInfo uriInfo){
-        LoanBonusConfigurationData loanBonusConfiguration = this.readPlatformService.getConfiguration();
+    public String retrieveConfig(@PathParam("loanProductId") final Long loanProductId, @Context final UriInfo uriInfo){
+        LoanBonusConfigurationData loanBonusConfiguration = this.readPlatformService.getLoanBonusConfiguration(loanProductId);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, loanBonusConfiguration, LoanBonusConfigJsonOutputParameters.getAllValues());
     }

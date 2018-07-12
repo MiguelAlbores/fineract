@@ -54,7 +54,6 @@ public class LoanBonusConfigurationWritePlatformServiceImpl  implements LoanBonu
     @Override
     public CommandProcessingResult createLoanBonusConfig(JsonCommand command) {
         try {
-            System.out.println(command.toString());
             final AppUser currentUser = this.context.authenticatedUser();
             LoanBonusConfiguration loanBonusConfiguration = LoanBonusConfiguration.fromJson(command, currentUser);
             if(loanBonusConfiguration.getCycles() != null)

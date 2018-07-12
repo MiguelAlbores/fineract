@@ -27,7 +27,7 @@ public enum LoanBonusConfigJsonOutputParameters {
     GL_ACCOUNT_TO_DEBIT("glAccountToDebit"), GL_ACCOUNT_TO_CREDIT("glAccountToCredit"),
     CYCLES_SETTINGS("cycles"), LOAN_CYCLE_FROM_VALUE("fromValue"),
     LOAN_CYCLE_TO_VALUE("toValue"),LOAN_CYCLE_PERCENT_VALUE("percentValue"),
-    UPDATED_BY("updatedBy");
+    UPDATED_BY("updatedBy"), LOAN_PRODUCT_ID("loanProductId");
     private final String value;
 
     LoanBonusConfigJsonOutputParameters(final String value) {

@@ -35,8 +35,9 @@ public class LoanBonusConfigurationData {
     private final DateTime updatedAt;
     private final Long createdBy;
     private final Long updatedBy;
+    private final Long loanProductId;
 
-    public LoanBonusConfigurationData(Long id, Long daysInArrear, Long daysToCollectBonus, GLAccountData glAccountToDebit, GLAccountData glAccountToCredit, List<LoanBonusConfigurationCycleData> cycles, DateTime createdAt, DateTime updatedAt, Long createdBy, Long updatedBy) {
+    public LoanBonusConfigurationData(Long id, Long daysInArrear, Long daysToCollectBonus, GLAccountData glAccountToDebit, GLAccountData glAccountToCredit, List<LoanBonusConfigurationCycleData> cycles, DateTime createdAt, DateTime updatedAt, Long createdBy, Long updatedBy, Long loanProductId) {
         this.id = id;
         this.daysInArrear = daysInArrear;
         this.daysToCollectBonus = daysToCollectBonus;
@@ -47,5 +48,6 @@ public class LoanBonusConfigurationData {
         this.updatedAt = updatedAt;
         this.createdBy = createdBy;
         this.updatedBy = updatedBy;
+        this.loanProductId = loanProductId;
     }
 }

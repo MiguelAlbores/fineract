@@ -46,14 +46,6 @@ public class LoanBonusConfigurationReadPlatformServiceImpl implements LoanBonusC
         this.glAccountReadPlatformService = glAccountReadPlatformService;
     }
 
-    @Override
-    public LoanBonusConfigurationData getConfiguration() {
-        List<LoanBonusConfiguration> configs = this.loanBonusConfigurationRepository.getConfiguration(new PageRequest(0,1)).getContent();
-        if(configs != null && !configs.isEmpty() && configs.size() == 1)
-            return convertToData(configs.get(0));
-        return null;
-    }
-
     private LoanBonusConfigurationData convertToData(LoanBonusConfiguration loanBonusConfiguration) {
         List<LoanBonusConfigurationCycleData> cycles = new ArrayList<>();
         if(loanBonusConfiguration.getCycles() != null && !loanBonusConfiguration.getCycles().isEmpty()){
@@ -78,9 +70,16 @@ public class LoanBonusConfigurationReadPlatformServiceImpl implements LoanBonusC
                 new DateTime(loanBonusConfiguration.getCreatedAt()),
                 new DateTime(loanBonusConfiguration.getUpdatedAt()),
                 loanBonusConfiguration.getCreatedBy().getId(),
-                loanBonusConfiguration.getUpdatedBy() != null ? loanBonusConfiguration.getUpdatedBy().getId():null
+                loanBonusConfiguration.getUpdatedBy() != null ? loanBonusConfiguration.getUpdatedBy().getId():null,
+                loanBonusConfiguration.getLoanProductId()
                 );
 
         return data;
+    }
+
+    @Override
+    public LoanBonusConfigurationData getLoanBonusConfiguration(Long loanProductId) {
+        LoanBonusConfiguration config = this.loanBonusConfigurationRepository.getLoanBonusConfigurationByLoanProductId(loanProductId);
+        return convertToData(config);
     }
 }

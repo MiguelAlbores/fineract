@@ -22,5 +22,6 @@ package org.apache.fineract.organisation.loan_bonus_configuration.service;
 import org.apache.fineract.organisation.loan_bonus_configuration.data.LoanBonusConfigurationData;
 
 public interface LoanBonusConfigurationReadPlatformService {
-    LoanBonusConfigurationData getConfiguration();
+
+    LoanBonusConfigurationData getLoanBonusConfiguration(Long loanProductId);
 }
