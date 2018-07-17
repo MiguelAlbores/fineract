@@ -22,6 +22,11 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.fineract.accounting.glaccount.domain.GLAccount;
+import org.apache.fineract.accounting.glaccount.domain.GLAccountRepository;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -115,6 +120,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
@@ -141,6 +147,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanAccountDomainService loanAccountDomainService;
     private final NoteRepository noteRepository;
     private final LoanTransactionRepository loanTransactionRepository;
+    private final GLAccountRepository glAccountRepository;
+    private final JournalEntryRepository glJournalEntryRepository;
     private final LoanAssembler loanAssembler;
     private final ChargeRepositoryWrapper chargeRepository;
     private final LoanChargeRepository loanChargeRepository;
@@ -204,7 +212,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final LoanRepaymentScheduleTransactionProcessorFactory transactionProcessingStrategy,
             final CodeValueRepositoryWrapper codeValueRepository,
             final LoanRepositoryWrapper loanRepositoryWrapper,
-            final CashierTransactionDataValidator cashierTransactionDataValidator) {
+            final CashierTransactionDataValidator cashierTransactionDataValidator,
+            final GLAccountRepository glAccountRepository,
+            final JournalEntryRepository glJournalEntryRepository) {
+        this.glAccountRepository = glAccountRepository;
+        this.glJournalEntryRepository = glJournalEntryRepository;
         this.context = context;
         this.loanEventApiJsonValidator = loanEventApiJsonValidator;
         this.loanAssembler = loanAssembler;
@@ -2947,6 +2959,48 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final CommandProcessingResultBuilder commandProcessingResultBuilder = new CommandProcessingResultBuilder();
         return commandProcessingResultBuilder.withLoanId(loanId) //
                 .with(changes) //
+                .build();
+    }
+
+    private String generateTransactionId(final Long officeId) {
+        final AppUser user = this.context.authenticatedUser();
+        final Long time = System.currentTimeMillis();
+        final String uniqueVal = String.valueOf(time) + user.getId() + officeId;
+        final String transactionId = Long.toHexString(Long.parseLong(uniqueVal));
+        return transactionId;
+    }
+
+    @Override
+    public CommandProcessingResult makeLoanBonusPay(Long loanId, JsonCommand command) {
+        Loan loan = this.loanAssembler.assembleFrom(loanId);
+        final LocalDate transactionDate = command.localDateValueOfParameterNamed(LoanApiConstants.transactionDateParamName);
+        final BigDecimal amount = command.bigDecimalValueOfParameterNamed(LoanApiConstants.amountParameterName);
+        final AppUser currentUser = this.context.authenticatedUser();
+        LoanTransaction loanTransaction = LoanTransaction.loanBonusPay(loan, loan.getOffice(), amount, LoanTransactionType.BONUS_PAY, transactionDate, LocalDateTime.now(), currentUser);
+        this.loanTransactionRepository.saveAndFlush(loanTransaction);
+
+        final Long accountToDebitId = command.longValueOfParameterNamed("glAccountToDebitId");
+        final Long accountTiCreditId = command.longValueOfParameterNamed("glAccountToCreditId");
+
+        GLAccount accountToDebit = this.glAccountRepository.findOne(accountToDebitId);
+        GLAccount accountToCredit = this.glAccountRepository.findOne(accountTiCreditId);
+        final String transactionId = generateTransactionId(loan.getOfficeId());
+
+        final JournalEntry glJournalEntryDebit = JournalEntry.createNew(loan.getOffice(), null, accountToDebit, loan.getCurrencyCode(), transactionId,
+                true, transactionDate.toDate(), JournalEntryType.DEBIT, amount, null, null, null, null,
+                loanTransaction, null, null, null);
+        final JournalEntry glJournalEntryCredit = JournalEntry.createNew(loan.getOffice(), null, accountToCredit, loan.getCurrencyCode(), transactionId,
+                true, transactionDate.toDate(), JournalEntryType.CREDIT, amount, null, null, null, null,
+                loanTransaction, null, null, null);
+
+        this.glJournalEntryRepository.saveAndFlush(glJournalEntryDebit);
+        this.glJournalEntryRepository.saveAndFlush(glJournalEntryCredit);
+
+
+        final CommandProcessingResultBuilder commandProcessingResultBuilder = new CommandProcessingResultBuilder();
+        return commandProcessingResultBuilder.withLoanId(loanId) //
+                .withEntityId(loanTransaction.getId()) //
+                .withTransactionId(transactionId)
                 .build();
     }
 

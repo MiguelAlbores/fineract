@@ -3199,4 +3199,13 @@ public class CommandWrapperBuilder {
         this.entityId = id;
         return this;
     }
+
+    public CommandWrapperBuilder loanBonusPay(Long loanId) {
+        this.actionName = "BONUS";
+        this.entityName = "LOAN";
+        this.href = "/loans/" + loanId + "/transactions?command=loanbonus";
+        this.entityId = null;
+        this.loanId = loanId;
+        return this;
+    }
 }

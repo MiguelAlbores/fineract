@@ -200,6 +200,9 @@ public class LoanTransactionsApiResource {
         } else if (is(commandParam, "foreclosure")) {
             final CommandWrapper commandRequest = builder.loanForeclosure(loanId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        }   else if (is(commandParam, "loanbonus")) {
+            final CommandWrapper commandRequest = builder.loanBonusPay(loanId).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         }
 
         if (result == null) { throw new UnrecognizedQueryParamException("command", commandParam); }

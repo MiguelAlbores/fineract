@@ -40,6 +40,11 @@ public enum LoanTransactionType {
      **/
     ACCRUAL(10, "loanTransactionType.accrual"), //
 
+    /**
+     * Transaction represents a payment bonus for client
+     **/
+    BONUS_PAY(20,"loanTransactionType.bonusPay"),
+
     /***
      * A Loan Transfer involves two steps, first a "initiate" Loan transfer
      * transaction done by the Source branch followed by a "complete" loan
@@ -130,6 +135,9 @@ public enum LoanTransactionType {
             case 19:
             	loanTransactionType = LoanTransactionType.INCOME_POSTING;
             	break;
+            case 20:
+                loanTransactionType = LoanTransactionType.BONUS_PAY;
+                break;
             default:
                 loanTransactionType = LoanTransactionType.INVALID;
             break;
