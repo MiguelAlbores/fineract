@@ -397,6 +397,9 @@ public class LoanEnumerations {
                 optionData = new LoanTransactionEnumData(LoanTransactionType.INCOME_POSTING.getValue().longValue(),
                         LoanTransactionType.INCOME_POSTING.getCode(), "Income Posting");
             break;
+            case BONUS_PAY:
+                optionData = new LoanTransactionEnumData(LoanTransactionType.BONUS_PAY.getValue().longValue(),
+                        LoanTransactionType.BONUS_PAY.getCode(), "Bonus");
             default:
             break;
         }

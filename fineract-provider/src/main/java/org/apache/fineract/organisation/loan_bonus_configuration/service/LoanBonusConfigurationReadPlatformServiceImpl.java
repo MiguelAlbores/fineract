@@ -80,6 +80,8 @@ public class LoanBonusConfigurationReadPlatformServiceImpl implements LoanBonusC
     @Override
     public LoanBonusConfigurationData getLoanBonusConfiguration(Long loanProductId) {
         LoanBonusConfiguration config = this.loanBonusConfigurationRepository.getLoanBonusConfigurationByLoanProductId(loanProductId);
-        return convertToData(config);
+        if(config != null)
+            return convertToData(config);
+        return null;
     }
 }

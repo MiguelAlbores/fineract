@@ -31,6 +31,7 @@ public interface LoanApiConstants {
     public static final String loanChargeIdParameterName = "loanChargeId";
     public static final String principalDisbursedParameterName = "transactionAmount";
     public static final String chargesParameterName = "charges";
+    public static final String amountParameterName = "amount";
 
     public static final String approvedLoanAmountParameterName = "approvedLoanAmount";
     public static final String approvedOnDateParameterName = "approvedOnDate";
