@@ -19,7 +19,6 @@
 package org.apache.fineract.infrastructure.core.boot;
 
 import javax.servlet.Filter;
-import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 
 import org.apache.fineract.infrastructure.core.filters.ResponseCorsFilter;
@@ -57,7 +56,6 @@ public class WebXmlConfiguration {
         Servlet jerseyServlet = new SpringServlet();
         ServletRegistrationBean jerseyServletRegistration = new ServletRegistrationBean();
         jerseyServletRegistration.setServlet(jerseyServlet);
-        jerseyServletRegistration.setMultipartConfig(new MultipartConfigElement(""));
         jerseyServletRegistration.addUrlMappings("/api/v1/*");
         jerseyServletRegistration.setName("jersey-servlet");
         jerseyServletRegistration.setLoadOnStartup(1);
