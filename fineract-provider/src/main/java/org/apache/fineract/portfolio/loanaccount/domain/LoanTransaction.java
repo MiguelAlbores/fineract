@@ -144,6 +144,17 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         this.appUser = null;*/
     }
 
+    private LoanTransaction(Loan loan, Office office, LoanTransactionType transactionType, BigDecimal amount, LocalDateTime createdDate, AppUser appUser, LocalDate transactionDate) {
+        this.loan = loan;
+        this.office = office;
+        this.typeOf = transactionType.getValue();
+        this.amount = amount;
+        this.dateOf = transactionDate.toDateTimeAtStartOfDay().toDate();
+        this.submittedOnDate = DateUtils.getDateOfTenant();
+        this.createdDate = createdDate.toDate();
+        this.appUser = appUser;
+    }
+
     public static LoanTransaction incomePosting(final Loan loan, final Office office, final Date dateOf, final BigDecimal amount,
             final BigDecimal interestPortion, final BigDecimal feeChargesPortion, final BigDecimal penaltyChargesPortion,
             final AppUser appUser) {
@@ -181,6 +192,13 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
             final LocalDateTime createdDate, final AppUser appUser) {
         return new LoanTransaction(loan, office, transactionType, paymentDetail, amount.getAmount(), paymentDate, externalId, createdDate,
                 appUser);
+    }
+
+    public static LoanTransaction loanBonusPay(final Loan loan, final Office office, final BigDecimal amount,
+                                               final LoanTransactionType transactionType, final LocalDate transactionDate,
+                                              final LocalDateTime createdDate, final AppUser appUser) {
+        return new LoanTransaction(loan, office, transactionType, amount, createdDate,
+                appUser, transactionDate);
     }
 
     public static LoanTransaction repaymentAtDisbursement(final Office office, final Money amount, final PaymentDetail paymentDetail,

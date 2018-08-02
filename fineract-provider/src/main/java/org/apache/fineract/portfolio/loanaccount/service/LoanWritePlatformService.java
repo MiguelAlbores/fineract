@@ -109,4 +109,5 @@ public interface LoanWritePlatformService {
 
     CommandProcessingResult forecloseLoan(final Long loanId, JsonCommand command);
 
+    CommandProcessingResult makeLoanBonusPay(Long loanId, JsonCommand command);
 }

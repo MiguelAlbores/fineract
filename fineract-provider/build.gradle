@@ -106,6 +106,7 @@ rat {
 	'**/.git/**',
     '**/.gitignore',
     '**/.gitkeep',
+    '**/*.ids',
 	'**/*.iml',
     '**/*.ipr',
     '**/*.iws',
