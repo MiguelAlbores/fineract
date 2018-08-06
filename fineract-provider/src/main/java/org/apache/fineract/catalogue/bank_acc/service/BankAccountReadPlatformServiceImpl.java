@@ -71,6 +71,14 @@ public class BankAccountReadPlatformServiceImpl implements BankAccountReadPlatfo
     }
 
     @Override
+    public List<BankAccountData> getAllAccounts(Integer usage) {
+        BankAccountExtractor bm = new BankAccountExtractor(this.glAccountReadPlatformService);
+        String sql = "select " + bm.schema() + " where ba.acc_use_id = ?";
+
+        return this.jdbcTemplate.query(sql, bm, new Object[] { usage });
+    }
+
+    @Override
     public BankAccountData getAccount(Long idGlAccount, Long bankId) {
         try{
             BankAccountMapper bm = new BankAccountMapper(this.glAccountReadPlatformService);
