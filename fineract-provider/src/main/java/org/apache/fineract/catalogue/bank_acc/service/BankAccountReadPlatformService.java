@@ -27,6 +27,7 @@ import java.util.List;
 
 public interface BankAccountReadPlatformService {
     List<BankAccountData> getAllAccountsByBank(Long bankId);
+    List<BankAccountData> getAllAccounts(Integer usage);
     BankAccountData getAccount(Long idGlAccount, Long bankId);
     List<EnumOptionData> getStatusOptions();
     List<EnumOptionData> getUseOptions();
