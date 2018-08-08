@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum BankAccountUse {
-    CATCHMENT(1, "bankAccountUse.catchment"),
     REPAYMENT(2, "bankAccountUse.repayment"),
     DISBURSEMENT(3, "bankAccountUse.disbursement");
 
