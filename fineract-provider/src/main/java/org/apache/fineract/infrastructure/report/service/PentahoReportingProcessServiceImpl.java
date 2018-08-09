@@ -208,7 +208,9 @@ public class PentahoReportingProcessServiceImpl implements ReportingProcessServi
 			// data scoping
 			final FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 			final FineractPlatformTenantConnection tenantConnection = tenant.getConnection();
-			String tenantUrl = driverConfig.constructProtocol(tenantConnection.getSchemaServer(), tenantConnection.getSchemaServerPort(), tenantConnection.getSchemaName());
+			//String tenantUrl = driverConfig.constructProtocol(tenantConnection.getSchemaServer(), tenantConnection.getSchemaServerPort(), tenantConnection.getSchemaName());
+			//Hack to fix Conserva instance MySQL 5.5
+			String tenantUrl = "jdbc:mysql://" + tenantConnection.getSchemaServer() + ":" + tenantConnection.getSchemaServerPort() + "/" + tenantConnection.getSchemaName();
 			final String userhierarchy = currentUser.getOffice().getHierarchy();
 			logger.info("db URL:" + tenantUrl + "      userhierarchy:" + userhierarchy);
 			rptParamValues.put("userhierarchy", userhierarchy);
