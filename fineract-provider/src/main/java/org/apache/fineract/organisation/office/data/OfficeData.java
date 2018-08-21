@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
+import org.apache.fineract.infrastructure.core.data.EnumOptionData;
+import org.apache.fineract.organisation.office.domain.OfficeType;
 import org.joda.time.LocalDate;
 
 /**
@@ -38,8 +40,17 @@ public class OfficeData implements Serializable {
     private final String hierarchy;
     private final Long parentId;
     private final String parentName;
+    private final EnumOptionData officeType;
+    private final String address;
+    private final String colony;
+    private final String postalCode;
+    private final String phone;
+    private final String municipality;
+    private final String state;
+    private final String une;
     @SuppressWarnings("unused")
     private final Collection<OfficeData> allowedParents;
+    private final List<EnumOptionData> officeTypes;
 
     //import fields
     private transient Integer rowIndex;
@@ -47,7 +58,10 @@ public class OfficeData implements Serializable {
     private String dateFormat;
 
     public static OfficeData importInstance(final String name, final Long parentId, final LocalDate openingDate,final String externalId) {
-        return new OfficeData(null, name, null, externalId, openingDate, null, parentId, null, null);
+        return new OfficeData(null, name, null, externalId, openingDate,
+                null, parentId, null, null,
+                null, null, null, null, null,
+                null, null, null, null);
     }
     public void setImportFields(final Integer rowIndex, final String locale, final String dateFormat) {
         this.rowIndex = rowIndex;
@@ -57,7 +71,9 @@ public class OfficeData implements Serializable {
     public static OfficeData testInstance(final Long id,final String name){
         return new OfficeData(id,name,null,null,
                 null,null,null,null,
-                null);
+                null, null, null,
+                null, null, null, null, null,
+                null, null);
     }
     public LocalDate getOpeningDate() {
         return openingDate;
@@ -72,20 +88,48 @@ public class OfficeData implements Serializable {
     }
 
     public static OfficeData dropdown(final Long id, final String name, final String nameDecorated) {
-        return new OfficeData(id, name, nameDecorated, null, null, null, null, null, null);
+        return new OfficeData(id, name, nameDecorated, null, null,
+                null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null);
     }
 
     public static OfficeData template(final List<OfficeData> parentLookups, final LocalDate defaultOpeningDate) {
-        return new OfficeData(null, null, null, null, defaultOpeningDate, null, null, null, parentLookups);
+        return new OfficeData(null, null, null, null,
+                defaultOpeningDate, null, null, null,
+                parentLookups, null, null, null, null,
+                null, null, null, null, null);
     }
 
     public static OfficeData appendedTemplate(final OfficeData office, final Collection<OfficeData> allowedParents) {
-        return new OfficeData(office.id, office.name, office.nameDecorated, office.externalId, office.openingDate, office.hierarchy,
-                office.parentId, office.parentName, allowedParents);
+        return new OfficeData(office.id, office.name, office.nameDecorated,
+                office.externalId, office.openingDate, office.hierarchy,
+                office.parentId, office.parentName, allowedParents,
+                null, office.officeType, office.address, office.colony,
+                office.postalCode, office.phone, office.municipality, office.state,
+                office.une);
     }
 
-    public OfficeData(final Long id, final String name, final String nameDecorated, final String externalId, final LocalDate openingDate,
-            final String hierarchy, final Long parentId, final String parentName, final Collection<OfficeData> allowedParents) {
+    public static OfficeData appendedTemplateOfficeTypes(final OfficeData office, final List<EnumOptionData> officeTypes) {
+        return new OfficeData(office.id, office.name, office.nameDecorated,
+                office.externalId, office.openingDate, office.hierarchy,
+                office.parentId, office.parentName, office.allowedParents,
+                officeTypes, office.officeType, office.address, office.colony,
+                office.postalCode, office.phone, office.municipality, office.state,
+                office.une);
+    }
+
+    public OfficeData(final Long id, final String name, final String nameDecorated,
+                      final String externalId, final LocalDate openingDate,
+                      final String hierarchy, final Long parentId,
+                      final String parentName,
+                      final Collection<OfficeData> allowedParents,
+                      final List<EnumOptionData> officeTypes,
+                      final EnumOptionData officeType,
+                      final String address, final String colony,
+                      final String postalCode, final String phone,
+                      final String municipality, final String state,
+                      final String une) {
         this.id = id;
         this.name = name;
         this.nameDecorated = nameDecorated;
@@ -95,6 +139,15 @@ public class OfficeData implements Serializable {
         this.parentName = parentName;
         this.parentId = parentId;
         this.allowedParents = allowedParents;
+        this.officeTypes = officeTypes;
+        this.officeType = officeType;
+        this.address = address;
+        this.postalCode = postalCode;
+        this.une = une;
+        this.municipality = municipality;
+        this.colony = colony;
+        this.phone = phone;
+        this.state = state;
     }
 
     public boolean hasIdentifyOf(final Long officeId) {
