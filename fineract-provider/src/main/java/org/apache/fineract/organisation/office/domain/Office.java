@@ -68,6 +68,30 @@ public class Office extends AbstractPersistableCustom<Long> {
     @Column(name = "external_id", length = 100)
     private String externalId;
 
+    @Column(name = "office_type_id")
+    private Long officeTypeId;
+
+    @Column(name = "address", length = 1000)
+    private String address;
+
+    @Column(name = "colony", length = 100)
+    private String colony;
+
+    @Column(name = "postal_code", length = 100)
+    private String postalCode;
+
+    @Column(name = "phone", length = 100)
+    private String phone;
+
+    @Column(name = "municipality", length = 255)
+    private String municipality;
+
+    @Column(name = "state", length = 255)
+    private String state;
+
+    @Column(name = "une")
+    private String une;
+
     public static Office headOffice(final String name, final LocalDate openingDate, final String externalId) {
         return new Office(null, name, openingDate, externalId);
     }
@@ -77,7 +101,16 @@ public class Office extends AbstractPersistableCustom<Long> {
         final String name = command.stringValueOfParameterNamed("name");
         final LocalDate openingDate = command.localDateValueOfParameterNamed("openingDate");
         final String externalId = command.stringValueOfParameterNamed("externalId");
-        return new Office(parentOffice, name, openingDate, externalId);
+        final Long officeTypeId = command.longValueOfParameterNamed("officeTypeId");
+        final String address = command.stringValueOfParameterNamed("address");
+        final String colony = command.stringValueOfParameterNamed("colony");
+        final String postalCode = command.stringValueOfParameterNamed("postalCode");
+        final String phone = command.stringValueOfParameterNamed("phone");
+        final String municipality = command.stringValueOfParameterNamed("municipality");
+        final String state = command.stringValueOfParameterNamed("state");
+        final String une = command.stringValueOfParameterNamed("une");
+        return new Office(parentOffice, name, openingDate, externalId, officeTypeId, address, colony,
+                postalCode, phone, municipality, state, une);
     }
 
     protected Office() {
@@ -87,7 +120,7 @@ public class Office extends AbstractPersistableCustom<Long> {
         this.externalId = null;
     }
 
-    private Office(final Office parent, final String name, final LocalDate openingDate, final String externalId) {
+    public Office(Office parent, String name, final LocalDate openingDate, String externalId) {
         this.parent = parent;
         this.openingDate = openingDate.toDateTimeAtStartOfDay().toDate();
         if (parent != null) {
@@ -104,6 +137,37 @@ public class Office extends AbstractPersistableCustom<Long> {
         } else {
             this.externalId = null;
         }
+    }
+
+    public Office(Office parent, String name, final LocalDate openingDate,
+                  String externalId, Long officeTypeId, String address, String colony,
+                  String postalCode, String phone, String municipality, String state,
+                  String une) {
+        this.parent = parent;
+        this.openingDate = openingDate.toDateTimeAtStartOfDay().toDate();
+        if (parent != null) {
+            this.parent.addChild(this);
+        }
+
+        if (StringUtils.isNotBlank(name)) {
+            this.name = name.trim();
+        } else {
+            this.name = null;
+        }
+        if (StringUtils.isNotBlank(externalId)) {
+            this.externalId = externalId.trim();
+        } else {
+            this.externalId = null;
+        }
+
+        this.officeTypeId = officeTypeId;
+        this.address = address;
+        this.colony = colony;
+        this.postalCode = postalCode;
+        this.phone = phone;
+        this.municipality = municipality;
+        this.state = state;
+        this.une = une;
     }
 
     private void addChild(final Office office) {
@@ -149,6 +213,62 @@ public class Office extends AbstractPersistableCustom<Long> {
             final String newValue = command.stringValueOfParameterNamed(externalIdParamName);
             actualChanges.put(externalIdParamName, newValue);
             this.externalId = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String officeTypeParamName = "officeTypeId";
+        if(command.isChangeInLongParameterNamed(officeTypeParamName, this.officeTypeId)){
+            final Long newValue = command.longValueOfParameterNamed(officeTypeParamName);
+            actualChanges.put(officeTypeParamName, newValue);
+            this.officeTypeId = newValue;
+        }
+
+        final String addressParamName = "address";
+        if (command.isChangeInStringParameterNamed(externalIdParamName, this.address)) {
+            final String newValue = command.stringValueOfParameterNamed(addressParamName);
+            actualChanges.put(addressParamName, newValue);
+            this.address = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String colonyParamName = "colony";
+        if (command.isChangeInStringParameterNamed(colonyParamName, this.colony)) {
+            final String newValue = command.stringValueOfParameterNamed(colonyParamName);
+            actualChanges.put(colonyParamName, newValue);
+            this.colony = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String postalCodeParamName = "postalCode";
+        if (command.isChangeInStringParameterNamed(postalCodeParamName, this.postalCode)) {
+            final String newValue = command.stringValueOfParameterNamed(postalCodeParamName);
+            actualChanges.put(postalCodeParamName, newValue);
+            this.postalCode = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String phoneParamName = "phone";
+        if (command.isChangeInStringParameterNamed(phoneParamName, this.phone)) {
+            final String newValue = command.stringValueOfParameterNamed(phoneParamName);
+            actualChanges.put(phoneParamName, newValue);
+            this.phone = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String municipalityParamName = "municipality";
+        if (command.isChangeInStringParameterNamed(municipalityParamName, this.municipality)) {
+            final String newValue = command.stringValueOfParameterNamed(municipalityParamName);
+            actualChanges.put(municipalityParamName, newValue);
+            this.municipality = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String stateParamName = "state";
+        if (command.isChangeInStringParameterNamed(stateParamName, this.state)) {
+            final String newValue = command.stringValueOfParameterNamed(stateParamName);
+            actualChanges.put(stateParamName, newValue);
+            this.state = StringUtils.defaultIfEmpty(newValue, null);
+        }
+
+        final String uneParamName = "une";
+        if (command.isChangeInStringParameterNamed(uneParamName, this.une)) {
+            final String newValue = command.stringValueOfParameterNamed(uneParamName);
+            actualChanges.put(uneParamName, newValue);
+            this.une = StringUtils.defaultIfEmpty(newValue, null);
         }
 
         return actualChanges;
@@ -245,5 +365,9 @@ public class Office extends AbstractPersistableCustom<Long> {
     
     public void loadLazyCollections() {
         this.children.size() ;
+    }
+
+    public Long getOfficeTypeId() {
+        return officeTypeId;
     }
 }

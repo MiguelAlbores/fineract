@@ -34,10 +34,8 @@ import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
-import org.apache.fineract.organisation.office.domain.Office;
-import org.apache.fineract.organisation.office.domain.OfficeRepositoryWrapper;
-import org.apache.fineract.organisation.office.domain.OfficeTransaction;
-import org.apache.fineract.organisation.office.domain.OfficeTransactionRepository;
+import org.apache.fineract.organisation.office.domain.*;
+import org.apache.fineract.organisation.office.exception.OfficeTypeHierarchyException;
 import org.apache.fineract.organisation.office.serialization.OfficeCommandFromApiJsonDeserializer;
 import org.apache.fineract.organisation.office.serialization.OfficeTransactionCommandFromApiJsonDeserializer;
 import org.apache.fineract.useradministration.domain.AppUser;
@@ -98,6 +96,8 @@ public class OfficeWritePlatformServiceJpaRepositoryImpl implements OfficeWriteP
             final Office parent = validateUserPriviledgeOnOfficeAndRetrieve(currentUser, parentId);
             final Office office = Office.fromJson(parent, command);
 
+            checkHierarchy(office);
+
             // pre save to generate id for use in office hierarchy
             this.officeRepositoryWrapper.save(office);
 
@@ -148,7 +148,7 @@ public class OfficeWritePlatformServiceJpaRepositoryImpl implements OfficeWriteP
                 final Office parent = validateUserPriviledgeOnOfficeAndRetrieve(currentUser, parentId);
                 office.update(parent);
             }
-
+            checkHierarchy(office);
             if (!changes.isEmpty()) {
                 this.officeRepositoryWrapper.saveAndFlush(office);
                 
@@ -168,6 +168,32 @@ public class OfficeWritePlatformServiceJpaRepositoryImpl implements OfficeWriteP
         	Throwable throwable = ExceptionUtils.getRootCause(dve.getCause()) ;
         	handleOfficeDataIntegrityIssues(command, throwable, dve);
         	return CommandProcessingResult.empty();
+        }
+    }
+
+    private void checkHierarchy(Office office){
+        OfficeType officeType = OfficeType.fromInt(office.getOfficeTypeId());
+        switch (officeType) {
+            case ROOT:
+                if(office.getParent() != null)
+                    throw new OfficeTypeHierarchyException("Root office can't have a parent");
+                break;
+            case GROUP:
+                if(office.getParent() == null)
+                    throw new OfficeTypeHierarchyException("Parent office is required for a group office");
+                if(!OfficeType.fromInt(office.getParent().getOfficeTypeId()).equals(OfficeType.ROOT)) {
+                    //group office can't have a parent different than a root
+                    throw new OfficeTypeHierarchyException("A Group type office can only be child of a root type office");
+                }
+                break;
+            case OFFICE:
+                if(office.getParent() == null)
+                    throw new OfficeTypeHierarchyException("Parent office is required for a group office");
+                if(!OfficeType.fromInt(office.getParent().getOfficeTypeId()).equals(OfficeType.GROUP)) {
+                    //group office can't have a parent different than a root
+                    throw new OfficeTypeHierarchyException("An office type office can only be child of a group type office");
+                }
+                break;
         }
     }
 

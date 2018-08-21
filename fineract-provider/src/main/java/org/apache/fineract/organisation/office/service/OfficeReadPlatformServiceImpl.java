@@ -23,7 +23,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
+import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
@@ -33,6 +35,7 @@ import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.monetary.service.CurrencyReadPlatformService;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.data.OfficeTransactionData;
+import org.apache.fineract.organisation.office.domain.OfficeType;
 import org.apache.fineract.organisation.office.exception.OfficeNotFoundException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.joda.time.LocalDate;
@@ -63,10 +66,23 @@ public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService 
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
+    @Override
+    public List<EnumOptionData> getOfficeTypeOptions() {
+        List<EnumOptionData> officeTypeOptions = new ArrayList<>();
+        for (final OfficeType officeType: OfficeType.values()) {
+            final EnumOptionData optionData = new EnumOptionData(officeType.getValue(), officeType.getCode(),
+                    officeType.toString());
+            officeTypeOptions.add(optionData);
+        }
+        return officeTypeOptions;
+    }
+
     private static final class OfficeMapper implements RowMapper<OfficeData> {
 
         public String officeSchema() {
-            return " o.id as id, o.name as name, "
+            return " o.id as id, o.name as name, o.office_type_id as officeTypeId, " +
+                    "o.address, o.colony, o.postal_code as postalCode, o.phone, " +
+                    "o.municipality, o.state, o.une, "
                     + nameDecoratedBaseOnHierarchy
                     + " as nameDecorated, o.external_id as externalId, o.opening_date as openingDate, o.hierarchy as hierarchy, parent.id as parentId, parent.name as parentName "
                     + "from m_office o LEFT JOIN m_office AS parent ON parent.id = o.parent_id ";
@@ -83,8 +99,27 @@ public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService 
             final String hierarchy = rs.getString("hierarchy");
             final Long parentId = JdbcSupport.getLong(rs, "parentId");
             final String parentName = rs.getString("parentName");
+            final Long officeTypeId = rs.getLong("officeTypeId");
+            OfficeType officeType;
+            if(officeTypeId != 0)
+                officeType = OfficeType.fromInt(officeTypeId);
+            else
+                officeType = OfficeType.ROOT;
+            EnumOptionData officeTypeData = new EnumOptionData(officeType.getValue(), officeType.getCode(),
+                    officeType.toString());
 
-            return new OfficeData(id, name, nameDecorated, externalId, openingDate, hierarchy, parentId, parentName, null);
+            final String address = rs.getString("address");
+            final String colony = rs.getString("colony");
+            final String postalCode = rs.getString("postalCode");
+            final String phone = rs.getString("phone");
+            final String municipality = rs.getString("municipality");
+            final String state = rs.getString("state");
+            final String une = rs.getString("une");
+
+            return new OfficeData(id, name, nameDecorated, externalId, openingDate,
+                    hierarchy, parentId, parentName, null,
+                    null, officeTypeData, address, colony, postalCode, phone,
+                    municipality, state, une);
         }
     }
 
