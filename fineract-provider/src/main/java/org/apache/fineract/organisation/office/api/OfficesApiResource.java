@@ -53,6 +53,7 @@ import org.apache.fineract.infrastructure.core.serialization.DefaultToApiJsonSer
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.data.OfficeData;
+import org.apache.fineract.organisation.office.domain.OfficeType;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -68,7 +69,7 @@ public class OfficesApiResource {
      * {@link OfficeData}.
      */
     private final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("id", "name", "nameDecorated", "externalId",
-            "openingDate", "hierarchy", "parentId", "parentName", "allowedParents"));
+            "openingDate", "hierarchy", "parentId", "parentName", "allowedParents", "officeTypes"));
 
     private final String resourceNameForPermissions = "OFFICE";
 
@@ -125,6 +126,7 @@ public class OfficesApiResource {
 
         final Collection<OfficeData> allowedParents = this.readPlatformService.retrieveAllOfficesForDropdown();
         office = OfficeData.appendedTemplate(office, allowedParents);
+        office = OfficeData.appendedTemplateOfficeTypes(office, this.readPlatformService.getOfficeTypeOptions());
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, office, this.RESPONSE_DATA_PARAMETERS);
