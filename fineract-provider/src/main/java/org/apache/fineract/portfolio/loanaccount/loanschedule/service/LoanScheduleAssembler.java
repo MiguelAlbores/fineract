@@ -99,16 +99,7 @@ import org.apache.fineract.portfolio.loanaccount.serialization.VariableLoanSched
 import org.apache.fineract.portfolio.loanaccount.service.LoanChargeAssembler;
 import org.apache.fineract.portfolio.loanaccount.service.LoanUtilService;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
-import org.apache.fineract.portfolio.loanproduct.domain.AmortizationMethod;
-import org.apache.fineract.portfolio.loanproduct.domain.InterestCalculationPeriodMethod;
-import org.apache.fineract.portfolio.loanproduct.domain.InterestMethod;
-import org.apache.fineract.portfolio.loanproduct.domain.InterestRecalculationCompoundingMethod;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProductInterestRecalculationDetails;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRelatedDetail;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProductVariableInstallmentConfig;
-import org.apache.fineract.portfolio.loanproduct.domain.RecalculationFrequencyType;
+import org.apache.fineract.portfolio.loanproduct.domain.*;
 import org.apache.fineract.portfolio.loanproduct.exception.LoanProductNotFoundException;
 import org.apache.fineract.portfolio.loanproduct.service.LoanEnumerations;
 import org.apache.fineract.useradministration.domain.AppUser;
@@ -141,6 +132,7 @@ public class LoanScheduleAssembler {
     private final CalendarInstanceRepository calendarInstanceRepository;
     private final PlatformSecurityContext context;
     private final LoanUtilService loanUtilService;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
 
     @Autowired
     public LoanScheduleAssembler(final FromJsonHelper fromApiJsonHelper, final LoanProductRepository loanProductRepository,
@@ -153,7 +145,8 @@ public class LoanScheduleAssembler {
             final FloatingRatesReadPlatformService floatingRatesReadPlatformService,
             final VariableLoanScheduleFromApiJsonValidator variableLoanScheduleFromApiJsonValidator,
             final CalendarInstanceRepository calendarInstanceRepository, final PlatformSecurityContext context,
-            final LoanUtilService loanUtilService) {
+            final LoanUtilService loanUtilService,
+            final LoanProductTaxComponentRepository loanProductTaxComponentRepository) {
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.loanProductRepository = loanProductRepository;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -171,6 +164,7 @@ public class LoanScheduleAssembler {
         this.calendarInstanceRepository = calendarInstanceRepository;
         this.context = context;
         this.loanUtilService = loanUtilService;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
     }
 
     public LoanApplicationTerms assembleLoanTerms(final JsonElement element) {
@@ -438,8 +432,14 @@ public class LoanScheduleAssembler {
                 HolidayStatusType.ACTIVE.getValue());
         final WorkingDays workingDays = this.workingDaysRepository.findOne();
         HolidayDetailDTO detailDTO = new HolidayDetailDTO(isHolidayEnabled, holidays, workingDays);
-        
-        
+
+        BigDecimal taxOnInterest = BigDecimal.valueOf(0);
+
+        List<LoanProductTaxComponent> loanProductTaxComponents = this.loanProductTaxComponentRepository.findByLoanProductId(loanProduct.getId());
+        for (LoanProductTaxComponent taxComponent : loanProductTaxComponents) {
+            taxOnInterest = taxOnInterest.add(taxComponent.getPercentage());
+        }
+
         return LoanApplicationTerms.assembleFrom(applicationCurrency, loanTermFrequency, loanTermPeriodFrequencyType, numberOfRepayments,
                 repaymentEvery, repaymentPeriodFrequencyType, nthDay, weekDayType, amortizationMethod, interestMethod,
                 interestRatePerPeriod, interestRatePeriodFrequencyType, annualNominalInterestRate, interestCalculationPeriodMethod,
@@ -450,7 +450,7 @@ public class LoanScheduleAssembler {
                 recalculationFrequencyType, restCalendarInstance, compoundingMethod, compoundingCalendarInstance, compoundingFrequencyType,
                 principalThresholdForLastInstalment, installmentAmountInMultiplesOf, loanProduct.preCloseInterestCalculationStrategy(),
                 calendar, BigDecimal.ZERO, loanTermVariations, isInterestChargedFromDateSameAsDisbursalDateEnabled,numberOfDays, isSkipMeetingOnFirstDay, detailDTO,
-                allowCompoundingOnEod, isEqualAmortization);
+                allowCompoundingOnEod, isEqualAmortization, taxOnInterest);
 }
 
     private CalendarInstance createCalendarForSameAsRepayment(final Integer repaymentEvery,

@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
@@ -36,13 +37,13 @@ import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.charge.service.ChargeReadPlatformService;
 import org.apache.fineract.portfolio.common.service.CommonEnumerations;
-import org.apache.fineract.portfolio.loanproduct.data.LoanProductBorrowerCycleVariationData;
-import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
-import org.apache.fineract.portfolio.loanproduct.data.LoanProductGuaranteeData;
-import org.apache.fineract.portfolio.loanproduct.data.LoanProductInterestRecalculationData;
+import org.apache.fineract.portfolio.loanproduct.data.*;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductParamType;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponent;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponentRepository;
 import org.apache.fineract.portfolio.loanproduct.exception.LoanProductNotFoundException;
+import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -57,15 +58,20 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
     private final JdbcTemplate jdbcTemplate;
     private final ChargeReadPlatformService chargeReadPlatformService;
     private final FineractEntityAccessUtil fineractEntityAccessUtil;
+    private final TaxReadPlatformService taxReadPlatformService;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
 
     @Autowired
     public LoanProductReadPlatformServiceImpl(final PlatformSecurityContext context,
             final ChargeReadPlatformService chargeReadPlatformService, final RoutingDataSource dataSource,
-            final FineractEntityAccessUtil fineractEntityAccessUtil) {
+            final FineractEntityAccessUtil fineractEntityAccessUtil, final TaxReadPlatformService taxReadPlatformService,
+            final LoanProductTaxComponentRepository loanProductTaxComponentRepository) {
         this.context = context;
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.fineractEntityAccessUtil = fineractEntityAccessUtil;
+        this.taxReadPlatformService = taxReadPlatformService;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
     }
 
     @Override
@@ -167,7 +173,36 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
         return LoanProductData.sensibleDefaultsForNewLoanProductCreation();
     }
 
-    private static final class LoanProductMapper implements RowMapper<LoanProductData> {
+    @Override
+
+    public List<LoanProductTaxComponentData> retrieveByProductId(Long productId) {
+        List<LoanProductTaxComponentData> taxComponents = new ArrayList<>();
+
+        List<LoanProductTaxComponent> loanProductTaxComponents = this.loanProductTaxComponentRepository.findByLoanProductId(productId);
+        if (!loanProductTaxComponents.isEmpty()) {
+            loanProductTaxComponents.forEach(component -> {
+                taxComponents.add(new LoanProductTaxComponentData(
+                        productId,
+                        component.getPercentage(),
+                        this.taxReadPlatformService.retrieveTaxComponentData(component.getTaxComponent().getId())
+                ));
+            });
+        }
+        return taxComponents;
+    }
+
+    @Override
+
+    public LoanProductTaxComponentData retrieveLoanProductTaxComponentById(Long id) {
+        LoanProductTaxComponent loanProductTaxComponent = this.loanProductTaxComponentRepository.findOne(id);
+        return new LoanProductTaxComponentData(
+                loanProductTaxComponent.getLoanProduct().getId(),
+                loanProductTaxComponent.getPercentage(),
+                this.taxReadPlatformService.retrieveTaxComponentData(loanProductTaxComponent.getTaxComponent().getId())
+        );
+    }
+
+    private final class LoanProductMapper implements RowMapper<LoanProductData> {
 
         private final Collection<ChargeData> charges;
 
@@ -450,7 +485,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             
             final boolean canUseForTopup = rs.getBoolean("canUseForTopup");
 
-            return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
+            LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                     numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
                     minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType,
                     interestRateFrequencyType, amortizationType, interestType, interestCalculationPeriodType,
@@ -466,6 +501,16 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     floatingRateName, interestRateDifferential, minDifferentialLendingRate, defaultDifferentialLendingRate,
                     maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableIntallmentsAllowed, minimumGap,
                     maximumGap, syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization);
+
+
+            //Append tax components
+
+            List<LoanProductTaxComponentData> taxComponents = LoanProductReadPlatformServiceImpl.this.retrieveByProductId(id);
+            if (!taxComponents.isEmpty()) {
+                loanProductData.setTaxComponents(taxComponents);
+            }
+
+            return loanProductData;
         }
     }
 

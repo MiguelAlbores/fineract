@@ -24,12 +24,15 @@ public class PrincipalInterest {
 
     private final Money principal;
     private final Money interest;
+    private final Money taxOnInterest;
     private final Money interestPaymentDueToGrace;
 
-    public PrincipalInterest(final Money principal, final Money interest, final Money interestPaymentDueToGrace) {
+    public PrincipalInterest(final Money principal, final Money interest, final Money interestPaymentDueToGrace,
+                             final Money taxOnInterest) {
         this.principal = principal;
         this.interest = interest;
         this.interestPaymentDueToGrace = interestPaymentDueToGrace;
+        this.taxOnInterest = taxOnInterest;
     }
 
     public Money principal() {
@@ -42,5 +45,9 @@ public class PrincipalInterest {
 
     public Money interestPaymentDueToGrace() {
         return this.interestPaymentDueToGrace;
+    }
+
+    public Money taxOninterest() {
+        return this.taxOnInterest;
     }
 }

@@ -133,6 +133,7 @@ public interface LoanProductConstants {
     public static final String canUseForTopup = "canUseForTopup";
     
     public static final String isEqualAmortizationParam = "isEqualAmortization";
-    
+
+    public static final String taxComponentsParam = "taxComponents";
 
 }

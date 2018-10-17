@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanproduct.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,14 +52,15 @@ import org.apache.fineract.portfolio.loanaccount.exception.LoanTransactionProces
 import org.apache.fineract.portfolio.common.BusinessEventNotificationConstants.BUSINESS_ENTITY;
 import org.apache.fineract.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.AprCalculator;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
-import org.apache.fineract.portfolio.loanproduct.domain.LoanTransactionProcessingStrategy;
+import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
+import org.apache.fineract.portfolio.loanproduct.domain.*;
 import org.apache.fineract.portfolio.loanproduct.exception.InvalidCurrencyException;
 import org.apache.fineract.portfolio.loanproduct.exception.LoanProductCannotBeModifiedDueToNonClosedLoansException;
 import org.apache.fineract.portfolio.loanproduct.exception.LoanProductDateException;
 import org.apache.fineract.portfolio.loanproduct.exception.LoanProductNotFoundException;
 import org.apache.fineract.portfolio.loanproduct.serialization.LoanProductDataValidator;
+import org.apache.fineract.portfolio.tax.domain.TaxComponent;
+import org.apache.fineract.portfolio.tax.domain.TaxComponentRepository;
 import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +88,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
     private final FloatingRateRepositoryWrapper floatingRateRepository;
     private final LoanRepositoryWrapper loanRepositoryWrapper;
     private final BusinessEventNotifierService businessEventNotifierService;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
+    private final TaxComponentRepository taxComponentRepository;
 
     @Autowired
     public LoanProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -97,7 +101,9 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             final FineractEntityAccessUtil fineractEntityAccessUtil,
             final FloatingRateRepositoryWrapper floatingRateRepository,
             final LoanRepositoryWrapper loanRepositoryWrapper,
-            final BusinessEventNotifierService businessEventNotifierService) {
+            final BusinessEventNotifierService businessEventNotifierService,
+            final TaxComponentRepository taxComponentRepository,
+            final LoanProductTaxComponentRepository loanProductTaxComponentRepository) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanProductRepository = loanProductRepository;
@@ -110,6 +116,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         this.floatingRateRepository = floatingRateRepository;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.businessEventNotifierService = businessEventNotifierService;
+        this.taxComponentRepository = taxComponentRepository;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
     }
 
     @Transactional
@@ -142,6 +150,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
             this.loanProductRepository.save(loanproduct);
 
+            this.saveTaxComponents(command, loanproduct);
+
             // save accounting mappings
             this.accountMappingWritePlatformService.createLoanProductToGLAccountMapping(loanproduct.getId(), command);
             // check if the office specific products are enabled. If yes, then save this savings product against a specific office
@@ -170,6 +180,29 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
          	return CommandProcessingResult.empty();
         }
 
+    }
+
+    private void saveTaxComponents(JsonCommand command, LoanProduct loanproduct) {
+        JsonArray taxComponents = command.arrayOfParameterNamed(LoanProductConstants.taxComponentsParam);
+        if (taxComponents != null && taxComponents.size() > 0) {
+            taxComponents.forEach(x -> {
+                JsonObject element = x.getAsJsonObject();
+                final BigDecimal percentage = element.get("percentage").getAsBigDecimal();
+                final TaxComponent taxComponent = this.taxComponentRepository.findOne(element.get("id").getAsLong());
+                LoanProductTaxComponent loanProductTaxComponent = new LoanProductTaxComponent();
+                loanProductTaxComponent.setLoanProduct(loanproduct);
+                loanProductTaxComponent.setTaxComponent(taxComponent);
+                loanProductTaxComponent.setPercentage(percentage != null ? percentage : taxComponent.getPercentage());
+                this.loanProductTaxComponentRepository.save(loanProductTaxComponent);
+            });
+        }
+    }
+
+    private void updateTaxComponents(JsonCommand command, LoanProduct loanProduct) {
+        List<LoanProductTaxComponent> existingComponents = this.loanProductTaxComponentRepository.findByLoanProductId(loanProduct.getId());
+        this.loanProductTaxComponentRepository.delete(existingComponents);
+        this.loanProductTaxComponentRepository.flush();
+        this.saveTaxComponents(command, loanProduct);
     }
 
     private LoanTransactionProcessingStrategy findStrategyByIdIfProvided(final Long transactionProcessingStrategyId) {
@@ -245,6 +278,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             if (!changes.isEmpty()) {
                 this.loanProductRepository.saveAndFlush(product);
             }
+
+            this.updateTaxComponents(command, product);
 
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //

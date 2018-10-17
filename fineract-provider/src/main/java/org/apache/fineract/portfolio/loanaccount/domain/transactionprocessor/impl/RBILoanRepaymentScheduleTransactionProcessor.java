@@ -94,7 +94,7 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
             transactionAmountRemaining = transactionAmountRemaining.minus(interestWaivedPortion);
 
             final Money principalPortion = Money.zero(transactionAmountRemaining.getCurrency());
-            loanTransaction.updateComponents(principalPortion, interestWaivedPortion, feeChargesPortion, penaltyChargesPortion);
+            loanTransaction.updateComponents(principalPortion, interestWaivedPortion, feeChargesPortion, penaltyChargesPortion, Money.zero(currency));
             if (interestWaivedPortion.isGreaterThanZero()) {
                 transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
                         interestWaivedPortion, feeChargesPortion, penaltyChargesPortion));
@@ -109,7 +109,7 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
                 feeChargesPortion = currentInstallment.payFeeChargesComponent(transactionDate, transactionAmountRemaining);
                 transactionAmountRemaining = transactionAmountRemaining.minus(feeChargesPortion);
             }
-            loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
+            loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion, Money.zero(currency));
             if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
                 transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
                         interestPortion, feeChargesPortion, penaltyChargesPortion));
@@ -133,8 +133,11 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
                     final Money interestPortion = installment.payInterestComponent(transactionDate, transactionAmountRemaining);
                     transactionAmountRemaining = transactionAmountRemaining.minus(interestPortion);
 
+                    final Money taxOnInterestPortion = installment.payTaxOnInterestComponent(transactionDate, transactionAmountRemaining);
+                    transactionAmountRemaining = transactionAmountRemaining.minus(taxOnInterestPortion);
+
                     final Money principalPortion = Money.zero(currency);
-                    loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
+                    loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion, taxOnInterestPortion);
                     if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
                         transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(installment, principalPortion,
                                 interestPortion, feeChargesPortion, penaltyChargesPortion));
@@ -150,7 +153,8 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
                     transactionAmountRemaining = transactionAmountRemaining.minus(principalPortion);
 
                     final Money interestPortion = Money.zero(currency);
-                    loanTransaction.updateComponents(principalPortion, interestPortion, Money.zero(currency), Money.zero(currency));
+                    final Money taxOnInterestPortion = Money.zero(currency);
+                    loanTransaction.updateComponents(principalPortion, interestPortion, Money.zero(currency), Money.zero(currency), taxOnInterestPortion);
                     boolean isMappingUpdated = false;
                     for (LoanTransactionToRepaymentScheduleMapping repaymentScheduleMapping : transactionMappings) {
                         if (repaymentScheduleMapping.getLoanRepaymentScheduleInstallment().getDueDate().equals(installment.getDueDate())) {
@@ -200,6 +204,7 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
         Money transactionAmountRemaining = transactionAmountUnprocessed;
         Money principalPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money interestPortion = Money.zero(transactionAmountRemaining.getCurrency());
+        Money taxOnInterestPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money feeChargesPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money penaltyChargesPortion = Money.zero(transactionAmountRemaining.getCurrency());
 
@@ -235,11 +240,14 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
             interestPortion = currentInstallment.payInterestComponent(transactionDate, transactionAmountRemaining);
             transactionAmountRemaining = transactionAmountRemaining.minus(interestPortion);
 
+            taxOnInterestPortion = currentInstallment.payTaxOnInterestComponent(transactionDate, transactionAmountRemaining);
+            transactionAmountRemaining = transactionAmountRemaining.minus(taxOnInterestPortion);
+
             principalPortion = currentInstallment.payPrincipalComponent(transactionDate, transactionAmountRemaining);
             transactionAmountRemaining = transactionAmountRemaining.minus(principalPortion);
         }
 
-        loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
+        loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion, taxOnInterestPortion);
         if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
             transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
                     interestPortion, feeChargesPortion, penaltyChargesPortion));
@@ -269,6 +277,7 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
         Money transactionAmountRemaining = transactionAmountUnprocessed;
         Money principalPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money interestPortion = Money.zero(transactionAmountRemaining.getCurrency());
+        Money taxOnInterestPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money feeChargesPortion = Money.zero(transactionAmountRemaining.getCurrency());
         Money penaltyChargesPortion = Money.zero(transactionAmountRemaining.getCurrency());
 
@@ -292,7 +301,7 @@ public class RBILoanRepaymentScheduleTransactionProcessor extends AbstractLoanRe
             transactionAmountRemaining = transactionAmountRemaining.minus(penaltyChargesPortion);
         }
 
-        loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
+        loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion, taxOnInterestPortion);
         if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
             transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
                     interestPortion, feeChargesPortion, penaltyChargesPortion));

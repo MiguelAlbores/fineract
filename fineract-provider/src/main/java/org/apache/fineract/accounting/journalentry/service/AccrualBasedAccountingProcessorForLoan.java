@@ -19,6 +19,7 @@
 package org.apache.fineract.accounting.journalentry.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -34,7 +35,17 @@ import org.apache.fineract.accounting.glaccount.domain.GLAccount;
 import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
+import org.apache.fineract.accounting.producttoaccountmapping.domain.PortfolioProductType;
 import org.apache.fineract.organisation.office.domain.Office;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponent;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -42,10 +53,23 @@ import org.springframework.stereotype.Component;
 public class AccrualBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
 
     private final AccountingProcessorHelper helper;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
+    private final LoanRepositoryWrapper loanRepository;
+    private final JournalEntryRepository glJournalEntryRepository;
+    private final LoanTransactionRepository loanTransactionRepository;
+
 
     @Autowired
-    public AccrualBasedAccountingProcessorForLoan(final AccountingProcessorHelper accountingProcessorHelper) {
+    public AccrualBasedAccountingProcessorForLoan(final AccountingProcessorHelper accountingProcessorHelper,
+                                                  final LoanProductTaxComponentRepository loanProductTaxComponentRepository,
+                                                  final LoanRepositoryWrapper loanRepository,
+                                                  final JournalEntryRepository glJournalEntryRepository,
+                                                  LoanTransactionRepository loanTransactionRepository) {
         this.helper = accountingProcessorHelper;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
+        this.loanRepository = loanRepository;
+        this.glJournalEntryRepository = glJournalEntryRepository;
+        this.loanTransactionRepository = loanTransactionRepository;
     }
 
     @Override
@@ -193,6 +217,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         final Date transactionDate = loanTransactionDTO.getTransactionDate();
         final BigDecimal principalAmount = loanTransactionDTO.getPrincipal();
         final BigDecimal interestAmount = loanTransactionDTO.getInterest();
+        final BigDecimal taxOnInterestAmount = loanTransactionDTO.getTaxOnInterest();
         final BigDecimal feesAmount = loanTransactionDTO.getFees();
         final BigDecimal penaltiesAmount = loanTransactionDTO.getPenalties();
         final BigDecimal overPaymentAmount = loanTransactionDTO.getOverPayment();
@@ -221,6 +246,33 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
                 accountMap.put(account, amount);
             } else {
                 accountMap.put(account, interestAmount);
+            }
+        }
+
+        if (taxOnInterestAmount != null && !(taxOnInterestAmount.compareTo(BigDecimal.ZERO) == 0)) {
+            totalDebitAmount = totalDebitAmount.add(taxOnInterestAmount);
+            Loan loan = loanRepository.findOneWithNotFoundDetection(loanId, true);
+            List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
+            BigDecimal interestChargedOnLastInstallment = BigDecimal.ZERO;
+            BigDecimal taxOnInteresPaidOnLastInstallment = BigDecimal.ZERO;
+            for(LoanRepaymentScheduleInstallment installment : installments){
+                if(installment.isPartlyPaid()){
+                    interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency()).getAmount();
+                    taxOnInteresPaidOnLastInstallment = installment.getTaxOnInterestPaid(loan.getCurrency()).getAmount();
+                    break;
+                }
+                if(installment.isNotFullyPaidOff() && !installment.isPartlyPaid()){
+                    break;
+                }
+                interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency()).getAmount();
+                taxOnInteresPaidOnLastInstallment = installment.getTaxOnInterestPaid(loan.getCurrency()).getAmount();
+            }
+            List<LoanProductTaxComponent> productTaxComponents = loanProductTaxComponentRepository.findByLoanProductId(loanProductId);
+            for(LoanProductTaxComponent productTaxComponent : productTaxComponents){
+                BigDecimal taxCharged = interestChargedOnLastInstallment.multiply(productTaxComponent.getPercentage().divide(BigDecimal.valueOf(100)), MathContext.DECIMAL64);
+                if(taxCharged.compareTo(taxOnInteresPaidOnLastInstallment) <= 0){
+                    accountMap.put(productTaxComponent.getTaxComponent().getCreditAcount(), taxCharged);
+                }
             }
         }
 
@@ -381,7 +433,29 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_RECEIVABLE.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_ON_LOANS.getValue(),
                     loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversed);
+
+            List<LoanProductTaxComponent> productTaxComponents = loanProductTaxComponentRepository.findByLoanProductId(loanProductId);
+            for(LoanProductTaxComponent productTaxComponent : productTaxComponents){
+                BigDecimal taxAmount = interestAmount.multiply(productTaxComponent.getPercentage().divide(BigDecimal.valueOf(100)), MathContext.DECIMAL64);
+
+                final JournalEntry journalEntryDebit = JournalEntry.createNew(office, null,
+                        productTaxComponent.getTaxComponent().getCreditAcount(), currencyCode,
+                        AccountingProcessorHelper.LOAN_TRANSACTION_IDENTIFIER + transactionId,
+                        false, transactionDate, JournalEntryType.DEBIT, taxAmount, null,
+                        PortfolioProductType.LOAN.getValue(), loanId, null,
+                        loanTransactionRepository.findOne(Long.valueOf(transactionId)), null, null, null);
+                this.glJournalEntryRepository.saveAndFlush(journalEntryDebit);
+
+                final JournalEntry journalEntryCredit = JournalEntry.createNew(office, null,
+                        productTaxComponent.getTaxComponent().getDebitAcount(), currencyCode,
+                        AccountingProcessorHelper.LOAN_TRANSACTION_IDENTIFIER + transactionId,
+                        false, transactionDate, JournalEntryType.CREDIT, taxAmount, null,
+                        PortfolioProductType.LOAN.getValue(), loanId, null,
+                        loanTransactionRepository.findOne(Long.valueOf(transactionId)), null, null, null);
+                this.glJournalEntryRepository.saveAndFlush(journalEntryCredit);
+            }
         }
+
         // create journal entries for the fees application (or reversal)
         if (feesAmount != null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
