@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.loanaccount.service;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.persistence.PersistenceException;
 
@@ -147,6 +148,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final GlobalConfigurationRepositoryWrapper globalConfigurationRepository;
     private final FineractEntityToEntityMappingRepository repository;
     private final FineractEntityRelationRepository fineractEntityRelationRepository;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
+    private final LoanTaxRepository loanTaxRepository;
+
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -169,7 +173,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final LoanScheduleAssembler loanScheduleAssembler, final LoanUtilService loanUtilService, 
             final CalendarReadPlatformService calendarReadPlatformService, final GlobalConfigurationRepositoryWrapper globalConfigurationRepository,
             final FineractEntityToEntityMappingRepository repository, final FineractEntityRelationRepository fineractEntityRelationRepository,
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
+            final LoanProductTaxComponentRepository loanProductTaxComponentRepository, final LoanTaxRepository loanTaxRepository) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -204,6 +209,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.globalConfigurationRepository = globalConfigurationRepository;
         this.repository = repository;
         this.fineractEntityRelationRepository = fineractEntityRelationRepository;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
+        this.loanTaxRepository = loanTaxRepository;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -397,6 +404,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_CREATE,
                     constructEntityMap(BUSINESS_ENTITY.LOAN, newLoanApplication));
 
+            this.applyTaxesOnInterest(newLoanApplication);
+
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //
                     .withEntityId(newLoanApplication.getId()) //
@@ -412,6 +421,35 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         	Throwable throwable = ExceptionUtils.getRootCause(dve.getCause()) ;
             handleDataIntegrityIssues(command, throwable, dve);
          	return CommandProcessingResult.empty();
+        }
+    }
+
+    private void applyTaxesOnInterest(Loan loan) {
+
+
+        List<LoanTax> exitingTaxes = this.loanTaxRepository.findByLoanId(loan.getId());
+
+        if (!exitingTaxes.isEmpty()) {
+
+            this.loanTaxRepository.delete(exitingTaxes);
+
+            this.loanTaxRepository.flush();
+
+        }
+
+        List<LoanProductTaxComponent> loanProductTaxComponents = this.loanProductTaxComponentRepository.findByLoanProductId(loan.productId());
+        if (!loanProductTaxComponents.isEmpty()) {
+            List<LoanRepaymentScheduleInstallment> installments = this.repaymentScheduleInstallmentRepository.findByLoanId(loan.getId());
+            final BigDecimal loanInterest = installments.stream()
+                    .map(x -> x.getInterestCharged(loan.getCurrency()).getAmount())
+                    .collect(Collectors.toList()).stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            for (LoanProductTaxComponent taxComponent : loanProductTaxComponents) {
+                LoanTax loanTax = new LoanTax();
+                loanTax.setLoan(loan);
+                loanTax.setLoanProductTaxComponent(taxComponent);
+                loanTax.setAmount(loanInterest.multiply(taxComponent.getPercentage().divide(BigDecimal.valueOf(100))));
+                this.loanTaxRepository.save(loanTax);
+            }
         }
     }
 
@@ -978,6 +1016,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
             }
 
+            this.applyTaxesOnInterest(existingLoanApplication);
+
             return new CommandProcessingResultBuilder() //
                     .withEntityId(loanId) //
                     .withOfficeId(existingLoanApplication.getOfficeId()) //
@@ -1145,6 +1185,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             }
 
             saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+            this.applyTaxesOnInterest(loan);
 
             final String noteText = command.stringValueOfParameterNamed("note");
             if (StringUtils.isNotBlank(noteText)) {

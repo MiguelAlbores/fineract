@@ -91,6 +91,9 @@ public final class LoanScheduleModelDisbursementPeriod implements LoanScheduleMo
     }
 
     @Override
+    public BigDecimal taxOnInterestDue() { return null; }
+
+    @Override
     public BigDecimal interestDue() {
         return null;
     }

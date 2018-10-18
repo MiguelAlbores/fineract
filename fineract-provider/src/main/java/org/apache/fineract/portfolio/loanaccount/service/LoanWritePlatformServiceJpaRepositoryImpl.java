@@ -2397,12 +2397,13 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 boolean recalculatedInterestComponent = true;
                 BigDecimal principal = BigDecimal.ZERO;
                 BigDecimal interest = BigDecimal.ZERO;
+                BigDecimal taxOnInterest = BigDecimal.ZERO;
                 BigDecimal feeCharges = BigDecimal.ZERO;
                 BigDecimal penaltyCharges = BigDecimal.ONE;
                 final Set<LoanInterestRecalcualtionAdditionalDetails> compoundingDetails = null;
                 LoanRepaymentScheduleInstallment newEntry = new LoanRepaymentScheduleInstallment(loan, installments.size() + 1,
                         lastInstallment.getDueDate(), lastChargeDate, principal, interest, feeCharges, penaltyCharges,
-                        recalculatedInterestComponent, compoundingDetails);
+                        recalculatedInterestComponent, compoundingDetails, taxOnInterest);
                 loan.addLoanRepaymentScheduleInstallment(newEntry);
             }
         }
@@ -2809,7 +2810,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                         scheduledLoanInstallment.periodDueDate(), scheduledLoanInstallment.principalDue(),
                         scheduledLoanInstallment.interestDue(), scheduledLoanInstallment.feeChargesDue(),
                         scheduledLoanInstallment.penaltyChargesDue(), scheduledLoanInstallment.isRecalculatedInterestComponent(),
-                        scheduledLoanInstallment.getLoanCompoundingDetails());
+                        scheduledLoanInstallment.getLoanCompoundingDetails(),
+                        scheduledLoanInstallment.taxOnInterestDue());
                 installments.add(installment);
             }
         }

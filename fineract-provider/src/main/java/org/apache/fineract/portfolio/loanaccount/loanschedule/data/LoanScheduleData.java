@@ -54,6 +54,7 @@ public class LoanScheduleData {
     private final BigDecimal totalPaidInAdvance;
     private final BigDecimal totalPaidLate;
     private final BigDecimal totalOutstanding;
+    private final BigDecimal totalTaxes;
 
     /**
      * <code>periods</code> is collection of data objects containing specific
@@ -63,6 +64,31 @@ public class LoanScheduleData {
     private final Collection<LoanSchedulePeriodData> periods;
 
     private Collection<LoanSchedulePeriodData> futurePeriods;
+
+    public LoanScheduleData(final CurrencyData currency, final Collection<LoanSchedulePeriodData> periods, final Integer loanTermInDays,
+                            final BigDecimal totalPrincipalDisbursed, final BigDecimal totalPrincipalExpected, final BigDecimal totalPrincipalPaid,
+                            final BigDecimal totalInterestCharged, final BigDecimal totalFeeChargesCharged, final BigDecimal totalPenaltyChargesCharged,
+                            final BigDecimal totalWaived, final BigDecimal totalWrittenOff, final BigDecimal totalRepaymentExpected,
+                            final BigDecimal totalRepayment, final BigDecimal totalPaidInAdvance, final BigDecimal totalPaidLate,
+                            final BigDecimal totalOutstanding, final BigDecimal totalTaxes) {
+        this.currency = currency;
+        this.periods = periods;
+        this.loanTermInDays = loanTermInDays;
+        this.totalPrincipalDisbursed = totalPrincipalDisbursed;
+        this.totalPrincipalExpected = totalPrincipalExpected;
+        this.totalPrincipalPaid = totalPrincipalPaid;
+        this.totalInterestCharged = totalInterestCharged;
+        this.totalFeeChargesCharged = totalFeeChargesCharged;
+        this.totalPenaltyChargesCharged = totalPenaltyChargesCharged;
+        this.totalWaived = totalWaived;
+        this.totalWrittenOff = totalWrittenOff;
+        this.totalRepaymentExpected = totalRepaymentExpected;
+        this.totalRepayment = totalRepayment;
+        this.totalPaidInAdvance = totalPaidInAdvance;
+        this.totalPaidLate = totalPaidLate;
+        this.totalOutstanding = totalOutstanding;
+        this.totalTaxes = totalTaxes;
+    }
 
     public LoanScheduleData(final CurrencyData currency, final Collection<LoanSchedulePeriodData> periods, final Integer loanTermInDays,
             final BigDecimal totalPrincipalDisbursed, final BigDecimal totalPrincipalExpected, final BigDecimal totalPrincipalPaid,
@@ -86,6 +112,7 @@ public class LoanScheduleData {
         this.totalPaidInAdvance = totalPaidInAdvance;
         this.totalPaidLate = totalPaidLate;
         this.totalOutstanding = totalOutstanding;
+        this.totalTaxes = null;
     }
 
     public LoanScheduleData(final CurrencyData currency, final Collection<LoanSchedulePeriodData> periods, final Integer loanTermInDays,
@@ -107,6 +134,7 @@ public class LoanScheduleData {
         this.totalPaidInAdvance = null;
         this.totalPaidLate = null;
         this.totalOutstanding = null;
+        this.totalTaxes = null;
     }
 
     public Collection<LoanSchedulePeriodData> getPeriods() {

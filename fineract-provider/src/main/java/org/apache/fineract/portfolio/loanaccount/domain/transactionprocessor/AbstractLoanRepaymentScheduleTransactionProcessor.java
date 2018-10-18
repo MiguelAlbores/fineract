@@ -222,7 +222,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         if (transactionAmountUnprocessed.isGreaterThanZero()) {
             if (loanTransaction.isWaiver()) {
                 loanTransaction.updateComponentsAndTotal(transactionAmountUnprocessed.zero(), transactionAmountUnprocessed.zero(),
-                        transactionAmountUnprocessed.zero(), transactionAmountUnprocessed.zero());
+                        transactionAmountUnprocessed.zero(), transactionAmountUnprocessed.zero(), transactionAmountUnprocessed.zero());
             } else {
                 onLoanOverpayment(loanTransaction, transactionAmountUnprocessed);
                 loanTransaction.updateOverPayments(transactionAmountUnprocessed);
@@ -395,6 +395,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         final LocalDate transactionDate = loanTransaction.getTransactionDate();
         Money principalPortion = Money.zero(currency);
         Money interestPortion = Money.zero(currency);
+        Money taxOnInterestPortion = Money.zero(currency);
         Money feeChargesPortion = Money.zero(currency);
         Money penaltychargesPortion = Money.zero(currency);
 
@@ -411,7 +412,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
             }
         }
 
-        loanTransaction.updateComponentsAndTotal(principalPortion, interestPortion, feeChargesPortion, penaltychargesPortion);
+        loanTransaction.updateComponentsAndTotal(principalPortion, interestPortion, feeChargesPortion, penaltychargesPortion, taxOnInterestPortion);
     }
 
     // abstract interface

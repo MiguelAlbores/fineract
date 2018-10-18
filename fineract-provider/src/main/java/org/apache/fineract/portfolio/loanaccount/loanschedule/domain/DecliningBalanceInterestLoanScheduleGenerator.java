@@ -138,8 +138,9 @@ public class DecliningBalanceInterestLoanScheduleGenerator extends AbstractLoanS
         } else {
             interestForPeriod = cumulatingInterestDueToGrace.minus(cumulatingInterestPaymentDueToGrace);
         }
+        Money taxOnInterestForThisInstallment = interestForThisInstallment.multipliedBy(loanApplicationTerms.getTaxOnInterest().divide(BigDecimal.valueOf(100)));
         Money principalForThisInstallment = loanApplicationTerms.calculateTotalPrincipalForPeriod(calculator, outstandingBalance,
-                periodNumber, mc, interestForPeriod);
+                periodNumber, mc, interestForPeriod, taxOnInterestForThisInstallment);
 
         // update cumulative fields for principal & interest
         final Money interestBroughtFowardDueToGrace = cumulatingInterestDueToGrace;
@@ -149,6 +150,7 @@ public class DecliningBalanceInterestLoanScheduleGenerator extends AbstractLoanS
         principalForThisInstallment = loanApplicationTerms.adjustPrincipalIfLastRepaymentPeriod(principalForThisInstallment,
                 totalCumulativePrincipalToDate, periodNumber);
 
-        return new PrincipalInterest(principalForThisInstallment, interestForThisInstallment, interestBroughtFowardDueToGrace);
+        taxOnInterestForThisInstallment = interestForThisInstallment.multipliedBy(loanApplicationTerms.getTaxOnInterest().divide(BigDecimal.valueOf(100)));
+        return new PrincipalInterest(principalForThisInstallment, interestForThisInstallment, interestBroughtFowardDueToGrace, taxOnInterestForThisInstallment);
     }
 }

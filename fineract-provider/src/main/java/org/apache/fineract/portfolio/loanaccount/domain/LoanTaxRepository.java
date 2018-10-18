@@ -25,10 +25,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface LoanRepaymentScheduleInstallmentRepository extends JpaRepository<LoanRepaymentScheduleInstallment, Long>,
-        JpaSpecificationExecutor<LoanRepaymentScheduleInstallment> {
+public interface LoanTaxRepository extends JpaRepository<LoanTax, Long>, JpaSpecificationExecutor<LoanTax> {
 
-    @Query("select installment from LoanRepaymentScheduleInstallment installment where installment.loan.id = :loanId")
-    List<LoanRepaymentScheduleInstallment> findByLoanId(@Param("loanId") Long loanId);
-
+    @Query("select loanTax from LoanTax loanTax where loanTax.loan.id = :loanId")
+    List<LoanTax> findByLoanId(@Param("loanId") Long loanId);
 }

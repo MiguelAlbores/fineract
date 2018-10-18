@@ -184,6 +184,8 @@ public class LoanProductData {
     private LoanProductConfigurableAttributes allowAttributeOverrides;
     private final boolean syncExpectedWithDisbursementDate;
     private final boolean isEqualAmortization;
+    private List<LoanProductTaxComponentData> taxComponents;
+
 
     /**
      * Used when returning lookup information about loan product for dropdowns.
@@ -842,6 +844,7 @@ public class LoanProductData {
         this.syncExpectedWithDisbursementDate = productData.syncExpectedWithDisbursementDate;
         this.canUseForTopup = productData.canUseForTopup;
         this.isEqualAmortization = productData.isEqualAmortization;
+        this.taxComponents = productData.taxComponents;
     }
 
     private Collection<ChargeData> nullIfEmpty(final Collection<ChargeData> charges) {
@@ -1230,4 +1233,13 @@ public class LoanProductData {
     public BigDecimal getMaxInterestRatePerPeriod() {
         return maxInterestRatePerPeriod;
     }
+
+    public List<LoanProductTaxComponentData> getTaxComponents() {
+        return taxComponents;
+    }
+
+    public void setTaxComponents(List<LoanProductTaxComponentData> taxComponents) {
+        this.taxComponents = taxComponents;
+    }
+
 }

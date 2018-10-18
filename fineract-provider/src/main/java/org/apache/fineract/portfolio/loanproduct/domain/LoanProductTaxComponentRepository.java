@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.loanaccount.domain;
+package org.apache.fineract.portfolio.loanproduct.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -25,10 +25,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface LoanRepaymentScheduleInstallmentRepository extends JpaRepository<LoanRepaymentScheduleInstallment, Long>,
-        JpaSpecificationExecutor<LoanRepaymentScheduleInstallment> {
+public interface LoanProductTaxComponentRepository extends JpaRepository<LoanProductTaxComponent, Long>, JpaSpecificationExecutor<LoanProductTaxComponent> {
 
-    @Query("select installment from LoanRepaymentScheduleInstallment installment where installment.loan.id = :loanId")
-    List<LoanRepaymentScheduleInstallment> findByLoanId(@Param("loanId") Long loanId);
-
+    @Query("select loanProductTaxComponent from LoanProductTaxComponent loanProductTaxComponent where loanProductTaxComponent.loanProduct.id = :loanProductId")
+    List<LoanProductTaxComponent> findByLoanProductId(@Param("loanProductId") Long loanProductId);
 }

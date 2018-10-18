@@ -39,11 +39,23 @@ public final class LoanScheduleModelRepaymentPeriod implements LoanScheduleModel
     private Money principalDue;
     private final Money outstandingLoanBalance;
     private Money interestDue;
+    private Money taxOnInterestDue;
     private Money feeChargesDue;
     private Money penaltyChargesDue;
     private Money totalDue;
     private final boolean recalculatedInterestComponent;
     private final Set<LoanInterestRecalcualtionAdditionalDetails> loanCompoundingDetails = new HashSet<>();
+
+    public static LoanScheduleModelRepaymentPeriod repayment(final int periodNumber, final LocalDate startDate,
+                                                             final LocalDate scheduledDueDate, final Money principalDue, final Money outstandingLoanBalance, final Money interestDue,
+                                                             final Money feeChargesDue, final Money penaltyChargesDue, final Money totalDue, boolean recalculatedInterestComponent,
+                                                             final Money taxOnInterestDue) {
+
+        LoanScheduleModelRepaymentPeriod loanScheduleModelRepaymentPeriod = new LoanScheduleModelRepaymentPeriod(periodNumber, startDate, scheduledDueDate, principalDue, outstandingLoanBalance,
+                interestDue, feeChargesDue, penaltyChargesDue, totalDue, recalculatedInterestComponent);
+        loanScheduleModelRepaymentPeriod.taxOnInterestDue = taxOnInterestDue;
+        return loanScheduleModelRepaymentPeriod;
+    }
 
     public static LoanScheduleModelRepaymentPeriod repayment(final int periodNumber, final LocalDate startDate,
             final LocalDate scheduledDueDate, final Money principalDue, final Money outstandingLoanBalance, final Money interestDue,
@@ -112,6 +124,16 @@ public final class LoanScheduleModelRepaymentPeriod implements LoanScheduleModel
             value = this.interestDue.getAmount();
         }
 
+        return value;
+    }
+
+    @Override
+
+    public BigDecimal taxOnInterestDue() {
+        BigDecimal value = null;
+        if (this.taxOnInterestDue != null) {
+            value = this.taxOnInterestDue.getAmount();
+        }
         return value;
     }
 
