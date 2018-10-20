@@ -34,6 +34,7 @@ import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
 import org.apache.fineract.accounting.producttoaccountmapping.domain.PortfolioProductType;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.office.domain.Office;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -251,35 +252,33 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
         // handle tax on interest payment
 
         if (taxOnInterestAmount != null && !(taxOnInterestAmount.compareTo(BigDecimal.ZERO) == 0)) {
-            totalDebitAmount = totalDebitAmount.add(taxOnInterestAmount);
-            Loan loan = loanRepository.findOneWithNotFoundDetection(loanId, true);
-            List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
-            BigDecimal interestChargedOnLastInstallment = BigDecimal.ZERO;
-            BigDecimal taxOnInteresPaidOnLastInstallment = BigDecimal.ZERO;
-            for(LoanRepaymentScheduleInstallment installment : installments){
-                if(installment.isPartlyPaid()){
-                    interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency()).getAmount();
-                    taxOnInteresPaidOnLastInstallment = installment.getTaxOnInterestPaid(loan.getCurrency()).getAmount();
-                    break;
-                }
-                if(installment.isNotFullyPaidOff() && !installment.isPartlyPaid()){
-                    break;
-                }
-                interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency()).getAmount();
-                taxOnInteresPaidOnLastInstallment = installment.getTaxOnInterestPaid(loan.getCurrency()).getAmount();
-            }
-            List<LoanProductTaxComponent> productTaxComponents = loanProductTaxComponentRepository.findByLoanProductId(loanProductId);
-            for(LoanProductTaxComponent productTaxComponent : productTaxComponents){
-                BigDecimal taxCharged = interestChargedOnLastInstallment.multiply(productTaxComponent.getPercentage().divide(BigDecimal.valueOf(100)), MathContext.DECIMAL64);
-                if(taxCharged.compareTo(taxOnInteresPaidOnLastInstallment) <= 0){
-                    final JournalEntry journalEntryCredit = JournalEntry.createNew(office, null,
-                            productTaxComponent.getTaxComponent().getDebitAcount(), currencyCode,
-                            AccountingProcessorHelper.LOAN_TRANSACTION_IDENTIFIER + transactionId,
-                            false, transactionDate, JournalEntryType.CREDIT, taxCharged, null,
-                            PortfolioProductType.LOAN.getValue(), loanId, null,
-                            loanTransactionRepository.findOne(Long.valueOf(transactionId)), null, null, null);
-                    this.glJournalEntryRepository.saveAndFlush(journalEntryCredit);
+            if (taxOnInterestAmount != null && !(taxOnInterestAmount.compareTo(BigDecimal.ZERO) == 0)) {
+                totalDebitAmount = totalDebitAmount.add(taxOnInterestAmount);
 
+                Loan loan = loanRepository.findOneWithNotFoundDetection(loanId, true);
+                List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
+                Money interestChargedOnLastInstallment = Money.zero(loan.getCurrency());
+                Money taxOnInteresOutstandingOnLastInstallment = Money.zero(loan.getCurrency());
+                for(LoanRepaymentScheduleInstallment installment : installments){
+                    if(installment.isNotFullyPaidOff() && !installment.isPartlyPaid()){
+                        break;
+                    }
+                    interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency());
+                    taxOnInteresOutstandingOnLastInstallment = installment.getTaxOnInterestOutstanding(loan.getCurrency());
+                }
+                if(taxOnInteresOutstandingOnLastInstallment.isZero()){
+                    List<LoanProductTaxComponent> productTaxComponents = loanProductTaxComponentRepository.findByLoanProductId(loanProductId);
+                    for(LoanProductTaxComponent productTaxComponent : productTaxComponents){
+                        Money taxCharged = interestChargedOnLastInstallment.multipliedBy(productTaxComponent.getPercentage().divide(BigDecimal.valueOf(100)));
+                        if(productTaxComponent.getTaxComponent().getDebitAcount() != null){
+                            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, loanId, transactionId, transactionDate,
+                                    taxCharged.getAmount(), true, productTaxComponent.getTaxComponent().getDebitAcount());
+                        }
+                        if(productTaxComponent.getTaxComponent().getCreditAcount() != null){
+                            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, loanId, transactionId, transactionDate,
+                                    taxCharged.getAmount(), isReversal, productTaxComponent.getTaxComponent().getCreditAcount());
+                        }
+                    }
                 }
             }
         }
