@@ -433,7 +433,7 @@ public class LoanScheduleAssembler {
         final WorkingDays workingDays = this.workingDaysRepository.findOne();
         HolidayDetailDTO detailDTO = new HolidayDetailDTO(isHolidayEnabled, holidays, workingDays);
 
-        BigDecimal taxOnInterest = BigDecimal.valueOf(0);
+        BigDecimal taxOnInterest = BigDecimal.ZERO;
 
         List<LoanProductTaxComponent> loanProductTaxComponents = this.loanProductTaxComponentRepository.findByLoanProductId(loanProduct.getId());
         for (LoanProductTaxComponent taxComponent : loanProductTaxComponents) {
