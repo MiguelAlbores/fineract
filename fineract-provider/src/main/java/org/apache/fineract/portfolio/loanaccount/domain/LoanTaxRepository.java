@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.loanaccount.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,4 +30,7 @@ public interface LoanTaxRepository extends JpaRepository<LoanTax, Long>, JpaSpec
 
     @Query("select loanTax from LoanTax loanTax where loanTax.loan.id = :loanId")
     List<LoanTax> findByLoanId(@Param("loanId") Long loanId);
+
+    @Modifying
+    void deleteLoanTaxByLoanProductTaxComponent_Id(Long productTaxComponentId);
 }

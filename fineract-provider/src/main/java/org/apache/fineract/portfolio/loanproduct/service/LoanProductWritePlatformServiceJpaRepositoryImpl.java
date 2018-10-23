@@ -47,6 +47,7 @@ import org.apache.fineract.portfolio.fund.domain.Fund;
 import org.apache.fineract.portfolio.fund.domain.FundRepository;
 import org.apache.fineract.portfolio.fund.exception.FundNotFoundException;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTaxRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionProcessingStrategyRepository;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanTransactionProcessingStrategyNotFoundException;
 import org.apache.fineract.portfolio.common.BusinessEventNotificationConstants.BUSINESS_ENTITY;
@@ -90,6 +91,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
     private final BusinessEventNotifierService businessEventNotifierService;
     private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
     private final TaxComponentRepository taxComponentRepository;
+    private final LoanTaxRepository loanTaxRepository;
 
     @Autowired
     public LoanProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -103,7 +105,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             final LoanRepositoryWrapper loanRepositoryWrapper,
             final BusinessEventNotifierService businessEventNotifierService,
             final TaxComponentRepository taxComponentRepository,
-            final LoanProductTaxComponentRepository loanProductTaxComponentRepository) {
+            final LoanProductTaxComponentRepository loanProductTaxComponentRepository,
+            final LoanTaxRepository loanTaxRepository) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanProductRepository = loanProductRepository;
@@ -118,6 +121,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         this.businessEventNotifierService = businessEventNotifierService;
         this.taxComponentRepository = taxComponentRepository;
         this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
+        this.loanTaxRepository = loanTaxRepository;
     }
 
     @Transactional
@@ -200,6 +204,10 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
     private void updateTaxComponents(JsonCommand command, LoanProduct loanProduct) {
         List<LoanProductTaxComponent> existingComponents = this.loanProductTaxComponentRepository.findByLoanProductId(loanProduct.getId());
+        for(LoanProductTaxComponent existingComponent : existingComponents){
+            this.loanTaxRepository.deleteLoanTaxByLoanProductTaxComponent_Id(existingComponent.getId());
+        }
+        this.loanTaxRepository.flush();
         this.loanProductTaxComponentRepository.delete(existingComponents);
         this.loanProductTaxComponentRepository.flush();
         this.saveTaxComponents(command, loanProduct);

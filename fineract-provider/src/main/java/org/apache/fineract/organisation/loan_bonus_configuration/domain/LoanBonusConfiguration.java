@@ -89,7 +89,6 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
         final Long daysToCollectBonus = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.DAYS_TO_COLLECT_BONUS.getValue());
         final Long glAccountDebit = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.GL_ACCOUNT_TO_DEBIT.getValue());
         final Long glAccountCredit = command.longValueOfParameterNamed(LoanBonusConfigJsonInputParameters.GL_ACCOUNT_TO_CREDIT.getValue());
-        System.out.println(glAccountCredit);
         JsonArray jsonArray = command.arrayOfParameterNamed(LoanBonusConfigJsonInputParameters.CYCLES_SETTINGS.getValue());
         List<LoanBonusConfigurationCycle> cycles = new ArrayList<LoanBonusConfigurationCycle>();
         if(jsonArray != null) {
