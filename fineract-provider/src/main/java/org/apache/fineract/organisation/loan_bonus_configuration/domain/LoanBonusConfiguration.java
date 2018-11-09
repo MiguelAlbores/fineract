@@ -31,6 +31,7 @@ import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.useradministration.domain.AppUser;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.*;
 
 @Entity
@@ -96,7 +97,7 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
                 JsonObject jsonObject = pa.getAsJsonObject();
                 final Long fromValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_FROM_VALUE.getValue()).getAsLong();
                 final Long toValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_TO_VALUE.getValue()).getAsLong();
-                final Double percentValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_PERCENT_VALUE.getValue()).getAsDouble();
+                final BigDecimal percentValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_PERCENT_VALUE.getValue()).getAsBigDecimal();
                 cycles.add(new LoanBonusConfigurationCycle(fromValue, toValue, percentValue, authUser));
             }
         }
@@ -154,7 +155,7 @@ public class LoanBonusConfiguration extends AbstractPersistableCustom<Long> {
                 }
                 final Long fromValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_FROM_VALUE.getValue()).getAsLong();
                 final Long toValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_TO_VALUE.getValue()).getAsLong();
-                final Double percentValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_PERCENT_VALUE.getValue()).getAsDouble();
+                final BigDecimal percentValue = jsonObject.get(LoanBonusConfigJsonInputParameters.LOAN_CYCLE_PERCENT_VALUE.getValue()).getAsBigDecimal();
                 LoanBonusConfigurationCycle cycle = new LoanBonusConfigurationCycle(fromValue, toValue, percentValue, updatedBy);
                 cycle.setId(id);
                 cycle.setLoanBonusConfig(this);

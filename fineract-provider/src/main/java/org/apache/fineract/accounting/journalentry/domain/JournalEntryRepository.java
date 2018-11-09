@@ -21,6 +21,7 @@ package org.apache.fineract.accounting.journalentry.domain;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -49,4 +50,6 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
     JournalEntry findLOANJournalEntryWith(@Param("accountId") Long accountId, @Param("transactionId") String transactionId,
             @Param("transactionDate") Date transactionDate, @Param("journalEntryType") Integer journalEntryType,
             @Param("loanId") Long loanId, @Param("loanTransactionId") Long loanTransactionId);*/
+
+    List<JournalEntry> findAllByLoanTransaction_TypeOfAndLoanTransaction_Loan(Integer transactionTypeOf, Loan loan);
 }

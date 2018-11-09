@@ -218,8 +218,23 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         return loanTransaction;
     }
 
+    public static LoanTransaction accrueLoanBonus(final Office office, final Loan loan, final Money amount,
+            final Date createdDate, final AppUser appUser) {
+        BigDecimal principalPortion = null;
+        BigDecimal feesPortion = null;
+        BigDecimal penaltiesPortion = null;
+        BigDecimal interestPortion = null;
+        BigDecimal overPaymentPortion = null;
+        boolean reversed = false;
+        PaymentDetail paymentDetail = null;
+        String externalId = null;
+        return new LoanTransaction(loan, office, LoanTransactionType.BONUS_PAY.getValue(), createdDate, amount.getAmount(),
+                principalPortion, interestPortion, feesPortion, penaltiesPortion, overPaymentPortion, reversed, paymentDetail, externalId,
+                new LocalDateTime(createdDate), appUser);
+    }
+
     public static LoanTransaction accrueInterest(final Office office, final Loan loan, final Money amount,
-            final LocalDate interestAppliedDate, final LocalDateTime createdDate, final AppUser appUser) {
+                                                 final LocalDate interestAppliedDate, final LocalDateTime createdDate, final AppUser appUser) {
         BigDecimal principalPortion = null;
         BigDecimal feesPortion = null;
         BigDecimal penaltiesPortion = null;

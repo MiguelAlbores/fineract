@@ -41,6 +41,17 @@ public class LoanRepositoryWrapper {
 
     private final LoanRepository repository;
 
+    @Transactional(readOnly=true)
+    public List<Loan> getAllLoansForUpdateBonus(){
+        List<Loan> loans = this.repository.findAll();
+        if(loans != null && loans.size() >0) {
+            for(Loan loan: loans) {
+                loan.initializeRepaymentSchedule();
+            }
+        }
+        return loans;
+    }
+
     @Autowired
     public LoanRepositoryWrapper(final LoanRepository repository) {
         this.repository = repository;

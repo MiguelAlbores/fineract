@@ -21,18 +21,20 @@ package org.apache.fineract.organisation.loan_bonus_configuration.data;
 
 import org.joda.time.DateTime;
 
+import java.math.BigDecimal;
+
 public class LoanBonusConfigurationCycleData {
     private final Long id;
     private final Long fromValue;
     private final Long toValue;
-    private final Double percentValue;
+    private final BigDecimal percentValue;
     private final Long loanBonusConfigId;
     private final DateTime createdAt;
     private final DateTime updatedAt;
     private final Long createdBy;
     private final Long updatedBy;
 
-    public LoanBonusConfigurationCycleData(Long id, Long fromValue, Long toValue, Double percentValue, Long loanBonusConfigId, DateTime createdAt, DateTime updatedAt, Long createdBy, Long updatedBy) {
+    public LoanBonusConfigurationCycleData(Long id, Long fromValue, Long toValue, BigDecimal percentValue, Long loanBonusConfigId, DateTime createdAt, DateTime updatedAt, Long createdBy, Long updatedBy) {
         this.id = id;
         this.fromValue = fromValue;
         this.toValue = toValue;
@@ -43,4 +45,5 @@ public class LoanBonusConfigurationCycleData {
         this.createdBy = createdBy;
         this.updatedBy = updatedBy;
     }
+
 }
