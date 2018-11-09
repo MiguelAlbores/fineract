@@ -51,5 +51,5 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
             @Param("transactionDate") Date transactionDate, @Param("journalEntryType") Integer journalEntryType,
             @Param("loanId") Long loanId, @Param("loanTransactionId") Long loanTransactionId);*/
 
-    List<JournalEntry> findAllByLoanTransaction_TypeOfAndLoanTransaction_Loan(Integer transactionTypeOf, Loan loan);
+    List<JournalEntry> findAllByLoanTransaction_TypeOfAndLoanTransaction_LoanAndLoanTransactionReversed(Integer transactionTypeOf, Loan loan, boolean reversed);
 }

@@ -101,7 +101,7 @@ public class LoanBonusReadServiceImpl implements LoanBonusReadService{
                 }
             }
 
-            List<JournalEntry> journalEntryList = this.journalEntryRepository.findAllByLoanTransaction_TypeOfAndLoanTransaction_Loan(LoanTransactionType.BONUS_PAY.getValue(), loan);
+            List<JournalEntry> journalEntryList = this.journalEntryRepository.findAllByLoanTransaction_TypeOfAndLoanTransaction_LoanAndLoanTransactionReversed(LoanTransactionType.BONUS_PAY.getValue(), loan, false);
             BigDecimal expectedBonus = BigDecimal.ZERO;
             for(JournalEntry journalEntry : journalEntryList){
                 expectedBonus = expectedBonus.add(journalEntry.getAmount());
