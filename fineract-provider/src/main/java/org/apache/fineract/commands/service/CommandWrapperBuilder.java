@@ -3208,4 +3208,22 @@ public class CommandWrapperBuilder {
         this.loanId = loanId;
         return this;
     }
+
+    public CommandWrapperBuilder loanBonusCollect(Long loanId) {
+        this.actionName = "COLLECT";
+        this.entityName = "LOAN_BONUS";
+        this.href = "/loan/" + loanId + "/bonus?command=collect";
+        this.entityId = null;
+        this.loanId = loanId;
+        return this;
+    }
+
+    public CommandWrapperBuilder loanBonusCancel(Long loanId) {
+        this.actionName = "CANCEL";
+        this.entityName = "LOAN_BONUS";
+        this.href = "/loan/" + loanId + "/bonus?command=cancel";
+        this.entityId = null;
+        this.loanId = loanId;
+        return this;
+    }
 }

@@ -39,7 +39,9 @@ import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
+import org.joda.time.Period;
 
 @Entity
 @Table(name = "m_loan_repayment_schedule")
@@ -846,5 +848,12 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public Money getTotalPaid(final MonetaryCurrency currency) {
         return getPenaltyChargesPaid(currency).plus(getFeeChargesPaid(currency)).plus(getInterestPaid(currency))
                 .plus(getPrincipalCompleted(currency));
+    }
+
+    public Long daysInArrear(){
+        if(obligationsMetOnDate.after(dueDate)){
+            return Long.valueOf(Days.daysBetween(new LocalDate(dueDate),new LocalDate(obligationsMetOnDate)).getDays());
+        }
+        return 0L;
     }
 }

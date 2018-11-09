@@ -32,6 +32,7 @@ import org.apache.fineract.accounting.common.AccountingConstants.ACCRUAL_ACCOUNT
 import org.apache.fineract.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_LOAN;
 import org.apache.fineract.accounting.common.AccountingConstants.FINANCIAL_ACTIVITY;
 import org.apache.fineract.accounting.glaccount.domain.GLAccount;
+import org.apache.fineract.accounting.glaccount.domain.GLAccountRepository;
 import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
@@ -39,16 +40,22 @@ import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
 import org.apache.fineract.accounting.producttoaccountmapping.domain.PortfolioProductType;
+import org.apache.fineract.organisation.loan_bonus_configuration.data.LoanBonusConfigurationCycleData;
+import org.apache.fineract.organisation.loan_bonus_configuration.data.LoanBonusConfigurationData;
+import org.apache.fineract.organisation.loan_bonus_configuration.domain.LoanBonusConfiguration;
+import org.apache.fineract.organisation.loan_bonus_configuration.domain.LoanBonusConfigurationCycle;
+import org.apache.fineract.organisation.loan_bonus_configuration.domain.LoanBonusConfigurationRepository;
+import org.apache.fineract.organisation.loan_bonus_configuration.service.LoanBonusConfigurationReadPlatformService;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.office.domain.Office;
-import org.apache.fineract.portfolio.loanaccount.domain.Loan;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.*;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponent;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponentRepository;
+import org.joda.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import static org.apache.fineract.accounting.journalentry.service.AccountingProcessorHelper.LOAN_TRANSACTION_IDENTIFIER;
 
 @Component
 public class AccrualBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
@@ -56,15 +63,28 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
     private final AccountingProcessorHelper helper;
     private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
     private final LoanRepositoryWrapper loanRepository;
+    private final LoanBonusConfigurationRepository loanBonusConfigurationRepository;
+    private final LoanTransactionRepository loanTransactionRepository;
+    private final GLAccountRepository glAccountRepository;
+    private final JournalEntryRepository journalEntryRepository;
+
 
 
     @Autowired
     public AccrualBasedAccountingProcessorForLoan(final AccountingProcessorHelper accountingProcessorHelper,
                                                   final LoanProductTaxComponentRepository loanProductTaxComponentRepository,
-                                                  final LoanRepositoryWrapper loanRepository) {
+                                                  final LoanRepositoryWrapper loanRepository,
+                                                  LoanBonusConfigurationRepository loanBonusConfigurationRepository,
+                                                  LoanTransactionRepository loanTransactionRepository,
+                                                  GLAccountRepository glAccountRepository,
+                                                  JournalEntryRepository journalEntryRepository) {
         this.helper = accountingProcessorHelper;
         this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
         this.loanRepository = loanRepository;
+        this.loanBonusConfigurationRepository = loanBonusConfigurationRepository;
+        this.loanTransactionRepository = loanTransactionRepository;
+        this.glAccountRepository = glAccountRepository;
+        this.journalEntryRepository = journalEntryRepository;
     }
 
     @Override
@@ -430,6 +450,30 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_RECEIVABLE.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_ON_LOANS.getValue(),
                     loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversed);
+
+            //provision loan bonus amount
+            Loan loan = this.loanRepository.findOneWithNotFoundDetection(loanId, false);
+            LoanBonusConfiguration bonusConfigData = this.loanBonusConfigurationRepository.getLoanBonusConfigurationByLoanProductId(loanProductId);
+
+            Integer loanCycle = loan.getLoanProductLoanCounter();
+            for(LoanBonusConfigurationCycle cycle : bonusConfigData.getCycles()){
+                if (cycle.isInCycle(loanCycle)){
+                    BigDecimal bonusAmount = interestAmount.multiply(cycle.getPercentValue().divide(BigDecimal.valueOf(100)));
+                    bonusAmount = bonusAmount.setScale(2, BigDecimal.ROUND_HALF_UP);
+                    LoanTransaction bonusTransaction = LoanTransaction.accrueLoanBonus(loan.getOffice(), loan,
+                            Money.of(loan.getCurrency(), bonusAmount), transactionDate, null);
+                    this.loanTransactionRepository.saveAndFlush(bonusTransaction);
+
+                    GLAccount accountToCredit = this.glAccountRepository.findOne(bonusConfigData.getGlAccountToCredit());
+
+                    String modifiedTransactionId = LOAN_TRANSACTION_IDENTIFIER + bonusTransaction.getId().toString();
+                    final JournalEntry journalEntry = JournalEntry.createNew(office, null, accountToCredit, currencyCode, modifiedTransactionId,
+                            false, transactionDate, JournalEntryType.CREDIT, bonusAmount, null, PortfolioProductType.LOAN.getValue(), loanId, null,
+                            bonusTransaction, null, null, null);
+                    this.journalEntryRepository.saveAndFlush(journalEntry);
+                    break;
+                }
+            }
         }
 
         // create journal entries for the fees application (or reversal)

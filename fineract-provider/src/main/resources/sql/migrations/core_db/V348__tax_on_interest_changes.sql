@@ -48,4 +48,4 @@ ALTER TABLE `m_loan_repayment_schedule`
 ADD COLUMN `tax_completed_derived` DECIMAL(19,6) NULL;
 
 ALTER TABLE `m_loan_transaction` 
-ADD COLUMN `tax_on_interest_portion_derived` VARCHAR(45) NULL;
+ADD COLUMN `tax_on_interest_portion_derived` DECIMAL(19,6) NULL;
