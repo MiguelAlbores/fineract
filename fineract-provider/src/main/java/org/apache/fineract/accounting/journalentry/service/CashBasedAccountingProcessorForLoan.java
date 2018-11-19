@@ -19,6 +19,7 @@
 package org.apache.fineract.accounting.journalentry.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,7 +30,18 @@ import org.apache.fineract.accounting.common.AccountingConstants.FINANCIAL_ACTIV
 import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
+import org.apache.fineract.accounting.producttoaccountmapping.domain.PortfolioProductType;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.office.domain.Office;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponent;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductTaxComponentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,10 +49,23 @@ import org.springframework.stereotype.Component;
 public class CashBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
 
     private final AccountingProcessorHelper helper;
+    private final LoanProductTaxComponentRepository loanProductTaxComponentRepository;
+    private final LoanRepositoryWrapper loanRepository;
+    private final JournalEntryRepository glJournalEntryRepository;
+    private final LoanTransactionRepository loanTransactionRepository;
 
     @Autowired
-    public CashBasedAccountingProcessorForLoan(final AccountingProcessorHelper accountingProcessorHelper) {
+    public CashBasedAccountingProcessorForLoan(final AccountingProcessorHelper accountingProcessorHelper,
+                                               final LoanProductTaxComponentRepository loanProductTaxComponentRepository,
+                                               final LoanRepositoryWrapper loanRepository,
+                                               final JournalEntryRepository glJournalEntryRepository,
+                                               LoanTransactionRepository loanTransactionRepository) {
         this.helper = accountingProcessorHelper;
+        this.loanProductTaxComponentRepository = loanProductTaxComponentRepository;
+        this.loanRepository = loanRepository;
+        this.glJournalEntryRepository = glJournalEntryRepository;
+        this.loanTransactionRepository = loanTransactionRepository;
+
     }
 
     @Override
@@ -203,6 +228,7 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
         final Date transactionDate = loanTransactionDTO.getTransactionDate();
         final BigDecimal principalAmount = loanTransactionDTO.getPrincipal();
         final BigDecimal interestAmount = loanTransactionDTO.getInterest();
+        final BigDecimal taxOnInterestAmount = loanTransactionDTO.getTaxOnInterest();
         final BigDecimal feesAmount = loanTransactionDTO.getFees();
         final BigDecimal penaltiesAmount = loanTransactionDTO.getPenalties();
         final BigDecimal overPaymentAmount = loanTransactionDTO.getOverPayment();
@@ -221,6 +247,40 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
             totalDebitAmount = totalDebitAmount.add(interestAmount);
             this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, CASH_ACCOUNTS_FOR_LOAN.INTEREST_ON_LOANS,
                     loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversal);
+        }
+
+        // handle tax on interest payment
+
+        if (taxOnInterestAmount != null && !(taxOnInterestAmount.compareTo(BigDecimal.ZERO) == 0)) {
+            if (taxOnInterestAmount != null && !(taxOnInterestAmount.compareTo(BigDecimal.ZERO) == 0)) {
+                totalDebitAmount = totalDebitAmount.add(taxOnInterestAmount);
+
+                Loan loan = loanRepository.findOneWithNotFoundDetection(loanId, true);
+                List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
+                Money interestChargedOnLastInstallment = Money.zero(loan.getCurrency());
+                Money taxOnInteresOutstandingOnLastInstallment = Money.zero(loan.getCurrency());
+                for(LoanRepaymentScheduleInstallment installment : installments){
+                    if(installment.isNotFullyPaidOff() && !installment.isPartlyPaid()){
+                        break;
+                    }
+                    interestChargedOnLastInstallment = installment.getInterestCharged(loan.getCurrency());
+                    taxOnInteresOutstandingOnLastInstallment = installment.getTaxOnInterestOutstanding(loan.getCurrency());
+                }
+                if(taxOnInteresOutstandingOnLastInstallment.isZero()){
+                    List<LoanProductTaxComponent> productTaxComponents = loanProductTaxComponentRepository.findByLoanProductId(loanProductId);
+                    for(LoanProductTaxComponent productTaxComponent : productTaxComponents){
+                        Money taxCharged = interestChargedOnLastInstallment.multipliedBy(productTaxComponent.getPercentage().divide(BigDecimal.valueOf(100)));
+                        if(productTaxComponent.getTaxComponent().getDebitAcount() != null){
+                            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, loanId, transactionId, transactionDate,
+                                    taxCharged.getAmount(), true, productTaxComponent.getTaxComponent().getDebitAcount());
+                        }
+                        if(productTaxComponent.getTaxComponent().getCreditAcount() != null){
+                            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, loanId, transactionId, transactionDate,
+                                    taxCharged.getAmount(), isReversal, productTaxComponent.getTaxComponent().getCreditAcount());
+                        }
+                    }
+                }
+            }
         }
 
         if (feesAmount != null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)) {

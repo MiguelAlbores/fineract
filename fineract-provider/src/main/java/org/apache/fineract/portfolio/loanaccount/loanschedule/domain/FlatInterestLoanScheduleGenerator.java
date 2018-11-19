@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.loanschedule.domain;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collection;
 import java.util.Map;
@@ -42,9 +43,9 @@ public class FlatInterestLoanScheduleGenerator extends AbstractLoanScheduleGener
                 interestCalculationGraceOnRepaymentPeriodFraction, periodNumber, mc, cumulatingInterestPaymentDueToGrace,
                 outstandingBalance, periodStartDate, periodEndDate);
         Money interestForThisInstallment = result.interest();
-        
+        Money taxOnInterestForThisInstallment = interestForThisInstallment.multipliedBy(loanApplicationTerms.getTaxOnInterest().divide(BigDecimal.valueOf(100)));
         Money principalForThisInstallment = loanApplicationTerms.calculateTotalPrincipalForPeriod(calculator, outstandingBalance,
-                periodNumber, mc, interestForThisInstallment);
+                periodNumber, mc, interestForThisInstallment, taxOnInterestForThisInstallment);
 
         // update cumulative fields for principal & interest
         final Money interestBroughtForwardDueToGrace = result.interestPaymentDueToGrace();
@@ -63,6 +64,8 @@ public class FlatInterestLoanScheduleGenerator extends AbstractLoanScheduleGener
         interestForThisInstallment = loanApplicationTerms.adjustInterestIfLastRepaymentPeriod(interestForThisInstallment,
                 totalCumulativeInterestToDate, totalInterestDueForLoan, periodNumber);
 
-        return new PrincipalInterest(principalForThisInstallment, interestForThisInstallment, interestBroughtForwardDueToGrace);
+        taxOnInterestForThisInstallment = interestForThisInstallment.multipliedBy(loanApplicationTerms.getTaxOnInterest().divide(BigDecimal.valueOf(100)));
+
+        return new PrincipalInterest(principalForThisInstallment, interestForThisInstallment, interestBroughtForwardDueToGrace, taxOnInterestForThisInstallment);
     }
 }

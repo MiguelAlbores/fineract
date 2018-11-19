@@ -96,6 +96,9 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
     @Column(name = "interest_portion_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal interestPortion;
 
+    @Column(name = "tax_on_interest_portion_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal taxOnInterestPortion;
+
     @Column(name = "fee_charges_portion_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal feeChargesPortion;
 
@@ -215,8 +218,23 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         return loanTransaction;
     }
 
+    public static LoanTransaction accrueLoanBonus(final Office office, final Loan loan, final Money amount,
+            final Date createdDate, final AppUser appUser) {
+        BigDecimal principalPortion = null;
+        BigDecimal feesPortion = null;
+        BigDecimal penaltiesPortion = null;
+        BigDecimal interestPortion = null;
+        BigDecimal overPaymentPortion = null;
+        boolean reversed = false;
+        PaymentDetail paymentDetail = null;
+        String externalId = null;
+        return new LoanTransaction(loan, office, LoanTransactionType.BONUS_PAY.getValue(), createdDate, amount.getAmount(),
+                principalPortion, interestPortion, feesPortion, penaltiesPortion, overPaymentPortion, reversed, paymentDetail, externalId,
+                new LocalDateTime(createdDate), appUser);
+    }
+
     public static LoanTransaction accrueInterest(final Office office, final Loan loan, final Money amount,
-            final LocalDate interestAppliedDate, final LocalDateTime createdDate, final AppUser appUser) {
+                                                 final LocalDate interestAppliedDate, final LocalDateTime createdDate, final AppUser appUser) {
         BigDecimal principalPortion = null;
         BigDecimal feesPortion = null;
         BigDecimal penaltiesPortion = null;
@@ -410,10 +428,11 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
      * @param feeCharges feeCharges
      * @param penaltyCharges penaltyCharges
      */
-    public void updateComponents(final Money principal, final Money interest, final Money feeCharges, final Money penaltyCharges) {
+    public void updateComponents(final Money principal, final Money interest, final Money feeCharges, final Money penaltyCharges, final Money taxOnInterest) {
         final MonetaryCurrency currency = principal.getCurrency();
         this.principalPortion = defaultToNullIfZero(getPrincipalPortion(currency).plus(principal).getAmount());
         this.interestPortion = defaultToNullIfZero(getInterestPortion(currency).plus(interest).getAmount());
+        this.taxOnInterestPortion = defaultToNullIfZero(getTaxOnInterestPortion(currency).plus(taxOnInterest).getAmount());
         updateChargesComponents(feeCharges, penaltyCharges);
     }
 
@@ -440,8 +459,8 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         this.interestPortion = defaultToNullIfZero(getInterestPortion(currency).minus(getUnrecognizedIncomePortion(currency)).getAmount());
     }
 
-    public void updateComponentsAndTotal(final Money principal, final Money interest, final Money feeCharges, final Money penaltyCharges) {
-        updateComponents(principal, interest, feeCharges, penaltyCharges);
+    public void updateComponentsAndTotal(final Money principal, final Money interest, final Money feeCharges, final Money penaltyCharges, final Money taxOnInterest) {
+        updateComponents(principal, interest, feeCharges, penaltyCharges, taxOnInterest);
 
         final MonetaryCurrency currency = principal.getCurrency();
         this.amount = getPrincipalPortion(currency).plus(getInterestPortion(currency)).plus(getFeeChargesPortion(currency))
@@ -463,6 +482,10 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
 
     public Money getInterestPortion(final MonetaryCurrency currency) {
         return Money.of(currency, this.interestPortion);
+    }
+
+    public Money getTaxOnInterestPortion(final MonetaryCurrency currency) {
+        return Money.of(currency, this.taxOnInterestPortion);
     }
 
     public Money getUnrecognizedIncomePortion(final MonetaryCurrency currency) {
@@ -625,7 +648,7 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         return new LoanTransactionData(getId(), this.office.getId(), this.office.getName(), transactionType, paymentDetailData,
                 currencyData, getTransactionDate(), this.amount, this.principalPortion, this.interestPortion, this.feeChargesPortion,
                 this.penaltyChargesPortion, this.overPaymentPortion, this.externalId, transfer, null, outstandingLoanBalance,
-                this.unrecognizedIncomePortion, this.manuallyAdjustedOrReversed);
+                this.unrecognizedIncomePortion, this.manuallyAdjustedOrReversed, this.taxOnInterestPortion);
     }
 
     public Map<String, Object> toMapData(final CurrencyData currencyData) {
@@ -645,6 +668,7 @@ public class LoanTransaction extends AbstractPersistableCustom<Long> {
         thisTransactionData.put("feeChargesPortion", this.feeChargesPortion);
         thisTransactionData.put("penaltyChargesPortion", this.penaltyChargesPortion);
         thisTransactionData.put("overPaymentPortion", this.overPaymentPortion);
+        thisTransactionData.put("taxOnInterestPortion", this.taxOnInterestPortion);
 
         if (this.paymentDetail != null) {
             thisTransactionData.put("paymentTypeId", this.paymentDetail.getPaymentType().getId());

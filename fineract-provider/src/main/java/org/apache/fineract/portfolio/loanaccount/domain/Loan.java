@@ -389,6 +389,9 @@ public class Loan extends AbstractPersistableCustom<Long> {
     @Column(name = "is_topup", nullable = false)
     private boolean isTopup = false;
 
+    @Column(name = "tax_on_interest")
+    private BigDecimal taxOnInterest;
+
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "loan", optional = true, orphanRemoval = true, fetch=FetchType.EAGER)
     private LoanTopupDetails loanTopupDetails;
 
@@ -797,10 +800,11 @@ public class Loan extends AbstractPersistableCustom<Long> {
                     if (transaction.isGreaterThan(chargeAmount)) {
                         final Money principalPortion = Money.zero(currency);
                         final Money interestPortion = Money.zero(currency);
+                        final Money taxOnInterestPortion = Money.zero(currency);
                         final Money penaltychargesPortion = Money.zero(currency);
 
                         final Money feeChargesPortion = chargeAmount;
-                        transaction.updateComponentsAndTotal(principalPortion, interestPortion, feeChargesPortion, penaltychargesPortion);
+                        transaction.updateComponentsAndTotal(principalPortion, interestPortion, feeChargesPortion, penaltychargesPortion, taxOnInterestPortion);
                     } else {
                         transactionToRemove = transaction;
                     }
@@ -1172,7 +1176,8 @@ public class Loan extends AbstractPersistableCustom<Long> {
                         scheduledLoanInstallment.periodDueDate(), scheduledLoanInstallment.principalDue(),
                         scheduledLoanInstallment.interestDue(), scheduledLoanInstallment.feeChargesDue(),
                         scheduledLoanInstallment.penaltyChargesDue(), scheduledLoanInstallment.isRecalculatedInterestComponent(),
-                        scheduledLoanInstallment.getLoanCompoundingDetails());
+                        scheduledLoanInstallment.getLoanCompoundingDetails(),
+                        scheduledLoanInstallment.taxOnInterestDue());
                 addLoanRepaymentScheduleInstallment(installment);
             }
         }
@@ -1998,6 +2003,7 @@ public class Loan extends AbstractPersistableCustom<Long> {
             this.loanInterestRecalculationDetails.updateLoan(this);
         }
 
+        this.taxOnInterest = loanApplicationTerms.getTaxOnInterest();
     }
 
     private LocalDate determineExpectedMaturityDate() {
@@ -2618,6 +2624,11 @@ public class Loan extends AbstractPersistableCustom<Long> {
         final MathContext mc = new MathContext(8, roundingMode);
 
         final LoanApplicationTerms loanApplicationTerms = constructLoanApplicationTerms(scheduleGeneratorDTO);
+        if(this.taxOnInterest != null)
+            loanApplicationTerms.setTaxOnInterest(this.taxOnInterest);
+        else
+            loanApplicationTerms.setTaxOnInterest(BigDecimal.ZERO);
+
         LoanScheduleGenerator loanScheduleGenerator = null;
         if (loanApplicationTerms.isEqualAmortization()) {
             if (loanApplicationTerms.getInterestMethod().isDecliningBalnce()) {
@@ -2714,7 +2725,7 @@ public class Loan extends AbstractPersistableCustom<Long> {
 
         if (disbursentMoney.isGreaterThanZero()) {
             final Money zero = Money.zero(getCurrency());
-            chargesPayment.updateComponentsAndTotal(zero, zero, disbursentMoney, zero);
+            chargesPayment.updateComponentsAndTotal(zero, zero, disbursentMoney, zero, zero);
             chargesPayment.updateLoan(this);
             addLoanTransaction(chargesPayment) ;
             updateLoanOutstandingBalaces();
@@ -2760,7 +2771,7 @@ public class Loan extends AbstractPersistableCustom<Long> {
         final LoanChargePaidBy loanChargePaidBy = new LoanChargePaidBy(chargesPayment, charge, charge.amount(), null);
         chargesPayment.getLoanChargesPaid().add(loanChargePaidBy);
         final Money zero = Money.zero(getCurrency());
-        chargesPayment.updateComponents(zero, zero, charge.getAmount(getCurrency()), zero);
+        chargesPayment.updateComponents(zero, zero, charge.getAmount(getCurrency()), zero, zero);
         chargesPayment.updateLoan(this);
         addLoanTransaction(chargesPayment) ;
         updateLoanOutstandingBalaces();
@@ -3520,7 +3531,8 @@ public class Loan extends AbstractPersistableCustom<Long> {
 
             cumulativeTotalPaidOnInstallments = cumulativeTotalPaidOnInstallments
                     .plus(scheduledRepayment.getPrincipalCompleted(currency).plus(scheduledRepayment.getInterestPaid(currency)))
-                    .plus(scheduledRepayment.getFeeChargesPaid(currency)).plus(scheduledRepayment.getPenaltyChargesPaid(currency));
+                    .plus(scheduledRepayment.getFeeChargesPaid(currency)).plus(scheduledRepayment.getPenaltyChargesPaid(currency))
+                    .plus(scheduledRepayment.getTaxOnInterestPaid(currency));
 
             cumulativeTotalWaivedOnInstallments = cumulativeTotalWaivedOnInstallments.plus(scheduledRepayment.getInterestWaived(currency));
         }
@@ -5455,16 +5467,19 @@ public class Loan extends AbstractPersistableCustom<Long> {
         Money penaltyCharges = Money.zero(loanCurrency());
         Money totalPrincipal = Money.zero(loanCurrency());
         Money totalInterest = Money.zero(loanCurrency());
+        Money totalTaxOnInterest = Money.zero(loanCurrency());
         final Set<LoanInterestRecalcualtionAdditionalDetails> compoundingDetails = null;
         List<LoanRepaymentScheduleInstallment> repaymentSchedule = getRepaymentScheduleInstallments() ;
         for (final LoanRepaymentScheduleInstallment scheduledRepayment : repaymentSchedule) {
             totalPrincipal = totalPrincipal.plus(scheduledRepayment.getPrincipalOutstanding(loanCurrency()));
             totalInterest = totalInterest.plus(scheduledRepayment.getInterestOutstanding(loanCurrency()));
+            totalTaxOnInterest = totalTaxOnInterest.plus(scheduledRepayment.getTaxOnInterestOutstanding(loanCurrency()));
             feeCharges = feeCharges.plus(scheduledRepayment.getFeeChargesOutstanding(loanCurrency()));
             penaltyCharges = penaltyCharges.plus(scheduledRepayment.getPenaltyChargesOutstanding(loanCurrency()));
         }
         return new LoanRepaymentScheduleInstallment(null, 0, LocalDate.now(), LocalDate.now(), totalPrincipal.getAmount(),
-                totalInterest.getAmount(), feeCharges.getAmount(), penaltyCharges.getAmount(), false, compoundingDetails);
+                totalInterest.getAmount(), feeCharges.getAmount(), penaltyCharges.getAmount(), false, compoundingDetails,
+                totalTaxOnInterest.getAmount());
     }
 
     public LocalDate getAccruedTill() {
@@ -6132,7 +6147,8 @@ public class Loan extends AbstractPersistableCustom<Long> {
         final Set<LoanInterestRecalcualtionAdditionalDetails> compoundingDetails = null;
         final LocalDate currentDate = DateUtils.getLocalDateOfTenant();
         return new LoanRepaymentScheduleInstallment(null, 0, currentDate, currentDate, totalPrincipal.getAmount(),
-                receivables[0].getAmount(), receivables[1].getAmount(), receivables[2].getAmount(), false, compoundingDetails);
+                receivables[0].getAmount(), receivables[1].getAmount(), receivables[2].getAmount(), false, compoundingDetails,
+                null);
     }
 
     public Money[] retriveIncomeOutstandingTillDate(final LocalDate paymentDate) {
@@ -6397,7 +6413,8 @@ public class Loan extends AbstractPersistableCustom<Long> {
         
 		LoanRepaymentScheduleInstallment newInstallment = new LoanRepaymentScheduleInstallment(null, newInstallments.size() + 1,
                 installmentStartDate, transactionDate, totalPrincipal.getAmount(),
-                balances[0].getAmount(), balances[1].getAmount(), balances[2].getAmount(), isInterestComponent, null);
+                balances[0].getAmount(), balances[1].getAmount(), balances[2].getAmount(), isInterestComponent, null,
+                null);
         newInstallment.updateInstallmentNumber(newInstallments.size() + 1);
         newInstallments.add(newInstallment);        
         updateLoanScheduleOnForeclosure(newInstallments);

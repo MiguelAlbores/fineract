@@ -63,8 +63,7 @@ public class TaxComponentData {
                 taxComponentHistories, glAccountOptions, glAccountTypeOptions);
     }
 
-    public static TaxComponentData lookup(final Long id, final String name) {
-        final BigDecimal percentage = null;
+    public static TaxComponentData lookup(final Long id, final String name, final BigDecimal percentage) {
         final EnumOptionData debitAccountType = null;
         final GLAccountData debitAcount = null;
         final EnumOptionData creditAccountType = null;

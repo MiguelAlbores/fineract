@@ -39,7 +39,9 @@ import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
+import org.joda.time.Period;
 
 @Entity
 @Table(name = "m_loan_repayment_schedule")
@@ -130,6 +132,12 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     @Column(name = "recalculated_interest_component", nullable = false)
     private boolean recalculatedInterestComponent;
 
+    @Column(name = "tax_amount", scale = 6, precision = 19, nullable = true)
+    private BigDecimal taxOnInterestCharged;
+
+    @Column(name = "tax_completed_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal taxOnInterestPaid;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch=FetchType.EAGER)
     @JoinColumn(name = "loan_repayment_schedule_id", referencedColumnName = "id", nullable = false)
     private Set<LoanInterestRecalcualtionAdditionalDetails> loanCompoundingDetails = new HashSet<>();
@@ -144,7 +152,8 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public LoanRepaymentScheduleInstallment(final Loan loan, final Integer installmentNumber, final LocalDate fromDate,
             final LocalDate dueDate, final BigDecimal principal, final BigDecimal interest, final BigDecimal feeCharges,
             final BigDecimal penaltyCharges, final boolean recalculatedInterestComponent,
-            final Set<LoanInterestRecalcualtionAdditionalDetails> compoundingDetails) {
+            final Set<LoanInterestRecalcualtionAdditionalDetails> compoundingDetails,
+            final BigDecimal taxOnInterestCharged) {
         this.loan = loan;
         this.installmentNumber = installmentNumber;
         this.fromDate = fromDate.toDateTimeAtStartOfDay().toDate();
@@ -156,6 +165,7 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
         this.obligationsMet = false;
         this.recalculatedInterestComponent = recalculatedInterestComponent;
         this.loanCompoundingDetails = compoundingDetails;
+        this.taxOnInterestCharged = taxOnInterestCharged;
     }
 
     public LoanRepaymentScheduleInstallment(final Loan loan) {
@@ -216,6 +226,19 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
         return Money.of(currency, this.interestCharged);
     }
 
+    public void setTaxOnInterestChargedCharged(BigDecimal taxOnInterestCharged) {
+        this.taxOnInterestCharged = taxOnInterestCharged;
+    }
+
+    public Money getTaxOnInterestCharged(final MonetaryCurrency currency) {
+        return Money.of(currency, this.taxOnInterestCharged);
+    }
+
+    public Money getTaxOnInterestPaid(final MonetaryCurrency currency) {
+        return Money.of(currency, this.taxOnInterestPaid);
+    }
+
+
     public Money getInterestPaid(final MonetaryCurrency currency) {
         return Money.of(currency, this.interestPaid);
     }
@@ -226,6 +249,10 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
 
     public Money getInterestWrittenOff(final MonetaryCurrency currency) {
         return Money.of(currency, this.interestWrittenOff);
+    }
+
+    public Money getTaxOnInterestOutstanding(final MonetaryCurrency currency) {
+        return getTaxOnInterestCharged(currency).minus(getTaxOnInterestPaid(currency));
     }
 
     public Money getInterestOutstanding(final MonetaryCurrency currency) {
@@ -300,7 +327,7 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
 
     public Money getTotalOutstanding(final MonetaryCurrency currency) {
         return getPrincipalOutstanding(currency).plus(getInterestOutstanding(currency)).plus(getFeeChargesOutstanding(currency))
-                .plus(getPenaltyChargesOutstanding(currency));
+                .plus(getPenaltyChargesOutstanding(currency)).plus(getTaxOnInterestOutstanding(currency));
     }
 
     public void updateLoan(final Loan loan) {
@@ -346,7 +373,7 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
         this.penaltyChargesWrittenOff = null;
         this.totalPaidInAdvance = null;
         this.totalPaidLate = null;
-
+        this.taxOnInterestPaid = null;
         this.obligationsMet = false;
         this.obligationsMetOnDate = null;
     }
@@ -422,6 +449,22 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
         trackAdvanceAndLateTotalsForRepaymentPeriod(transactionDate, currency, interestPortionOfTransaction);
 
         return interestPortionOfTransaction;
+    }
+
+    public Money payTaxOnInterestComponent(final LocalDate transactionDate, final Money transactionAmountRemaining) {
+        final MonetaryCurrency currency = transactionAmountRemaining.getCurrency();
+        Money taxOnInterestPortionOfTransaction = Money.zero(currency);
+        final Money taxOnInterestDue = getTaxOnInterestOutstanding(currency);
+        if (transactionAmountRemaining.isGreaterThanOrEqualTo(taxOnInterestDue)) {
+            this.taxOnInterestPaid = getTaxOnInterestPaid(currency).plus(taxOnInterestDue).getAmount();
+            taxOnInterestPortionOfTransaction = taxOnInterestPortionOfTransaction.plus(taxOnInterestDue);
+        } else {
+            this.taxOnInterestPaid = getTaxOnInterestPaid(currency).plus(transactionAmountRemaining).getAmount();
+            taxOnInterestPortionOfTransaction = taxOnInterestPortionOfTransaction.plus(transactionAmountRemaining);
+        }
+        this.taxOnInterestPaid = defaultToNullIfZero(this.taxOnInterestPaid);
+        trackAdvanceAndLateTotalsForRepaymentPeriod(transactionDate, currency, taxOnInterestPortionOfTransaction);
+        return taxOnInterestPortionOfTransaction;
     }
 
     public Money payPrincipalComponent(final LocalDate transactionDate, final Money transactionAmountRemaining) {
@@ -805,5 +848,12 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public Money getTotalPaid(final MonetaryCurrency currency) {
         return getPenaltyChargesPaid(currency).plus(getFeeChargesPaid(currency)).plus(getInterestPaid(currency))
                 .plus(getPrincipalCompleted(currency));
+    }
+
+    public Long daysInArrear(){
+        if(obligationsMetOnDate.after(dueDate)){
+            return Long.valueOf(Days.daysBetween(new LocalDate(dueDate),new LocalDate(obligationsMetOnDate)).getDays());
+        }
+        return 0L;
     }
 }

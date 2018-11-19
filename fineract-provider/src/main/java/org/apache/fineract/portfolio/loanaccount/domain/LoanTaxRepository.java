@@ -20,15 +20,17 @@ package org.apache.fineract.portfolio.loanaccount.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface LoanRepaymentScheduleInstallmentRepository extends JpaRepository<LoanRepaymentScheduleInstallment, Long>,
-        JpaSpecificationExecutor<LoanRepaymentScheduleInstallment> {
+public interface LoanTaxRepository extends JpaRepository<LoanTax, Long>, JpaSpecificationExecutor<LoanTax> {
 
-    @Query("select installment from LoanRepaymentScheduleInstallment installment where installment.loan.id = :loanId")
-    List<LoanRepaymentScheduleInstallment> findByLoanId(@Param("loanId") Long loanId);
+    @Query("select loanTax from LoanTax loanTax where loanTax.loan.id = :loanId")
+    List<LoanTax> findByLoanId(@Param("loanId") Long loanId);
 
+    @Modifying
+    void deleteLoanTaxByLoanProductTaxComponent_Id(Long productTaxComponentId);
 }

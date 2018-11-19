@@ -38,6 +38,7 @@ public class LoanTransactionDTO {
     /*** Breakup of amounts in case of repayments **/
     private final BigDecimal principal;
     private final BigDecimal interest;
+    private final BigDecimal taxOnInterest;
     private final BigDecimal fees;
     private final BigDecimal penalties;
     private final BigDecimal overPayment;
@@ -56,7 +57,8 @@ public class LoanTransactionDTO {
     public LoanTransactionDTO(final Long officeId, final Long paymentTypeId, final String transactionId, final Date transactionDate,
             final LoanTransactionEnumData transactionType, final BigDecimal amount, final BigDecimal principal, final BigDecimal interest,
             final BigDecimal fees, final BigDecimal penalties, final BigDecimal overPayment, final boolean reversed,
-            final List<ChargePaymentDTO> feePayments, final List<ChargePaymentDTO> penaltyPayments, boolean isAccountTransfer) {
+            final List<ChargePaymentDTO> feePayments, final List<ChargePaymentDTO> penaltyPayments, boolean isAccountTransfer,
+            final BigDecimal taxOnInterest) {
         this.paymentTypeId = paymentTypeId;
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
@@ -72,6 +74,7 @@ public class LoanTransactionDTO {
         this.overPayment = overPayment;
         this.officeId = officeId;
         this.isAccountTransfer = isAccountTransfer;
+        this.taxOnInterest = taxOnInterest;
     }
 
     public Long getOfficeId() {
@@ -141,4 +144,8 @@ public class LoanTransactionDTO {
         public boolean isLoanToLoanTransfer(){
             return this.isLoanToLoanTransfer;
         }
+
+    public BigDecimal getTaxOnInterest() {
+        return taxOnInterest;
+    }
 }

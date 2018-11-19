@@ -21,10 +21,14 @@ package org.apache.fineract.organisation.loan_bonus_configuration.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.organisation.loan_bonus_configuration.data.LoanBonusConfigurationCycleData;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 import org.springframework.data.jpa.domain.AbstractAuditable;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
@@ -37,7 +41,7 @@ public class LoanBonusConfigurationCycle extends AbstractPersistableCustom<Long>
     private Long toValue;
 
     @Column(name = "percent_value")
-    private Double percentValue;
+    private BigDecimal percentValue;
 
     @JsonBackReference
     @ManyToOne
@@ -60,7 +64,7 @@ public class LoanBonusConfigurationCycle extends AbstractPersistableCustom<Long>
     @JoinColumn(name = "lastmodifiedby_id", nullable = true)
     private AppUser updatedBy;
 
-    public LoanBonusConfigurationCycle(Long fromValue, Long toValue, Double percentValue, AppUser createdBy) {
+    public LoanBonusConfigurationCycle(Long fromValue, Long toValue, BigDecimal percentValue, AppUser createdBy) {
         this.fromValue = fromValue;
         this.toValue = toValue;
         this.percentValue = percentValue;
@@ -89,11 +93,11 @@ public class LoanBonusConfigurationCycle extends AbstractPersistableCustom<Long>
         this.toValue = toValue;
     }
 
-    public Double getPercentValue() {
+    public BigDecimal getPercentValue() {
         return percentValue;
     }
 
-    public void setPercentValue(Double percentValue) {
+    public void setPercentValue(BigDecimal percentValue) {
         this.percentValue = percentValue;
     }
 
@@ -135,5 +139,16 @@ public class LoanBonusConfigurationCycle extends AbstractPersistableCustom<Long>
 
     public void setUpdatedBy(AppUser updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public boolean isInCycle(Integer cycle){
+        return cycle >= fromValue && cycle <= toValue;
+    }
+
+    public LoanBonusConfigurationCycleData toData() {
+        return new LoanBonusConfigurationCycleData(this.getId(), this.fromValue, this.toValue,
+                this.percentValue, this.loanBonusConfig.getId(), new DateTime(this.createdAt),
+                new DateTime(this.createdAt),
+                this.createdBy != null ? this.createdBy.getId():null, this.updatedBy != null ? this.updatedBy.getId() : null);
     }
 }

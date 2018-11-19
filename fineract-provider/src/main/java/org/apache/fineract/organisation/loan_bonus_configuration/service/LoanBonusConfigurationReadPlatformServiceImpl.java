@@ -19,6 +19,7 @@
 
 package org.apache.fineract.organisation.loan_bonus_configuration.service;
 
+import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.accounting.glaccount.service.GLAccountReadPlatformService;
 import org.apache.fineract.accounting.journalentry.data.JournalEntryAssociationParametersData;
 import org.apache.fineract.organisation.loan_bonus_configuration.data.LoanBonusConfigurationCycleData;
@@ -61,11 +62,20 @@ public class LoanBonusConfigurationReadPlatformServiceImpl implements LoanBonusC
             }
         }
 
+        GLAccountData accountToDebit = null;
+        if(loanBonusConfiguration.getGlAccountToDebit() != null){
+            accountToDebit = glAccountReadPlatformService.retrieveGLAccountById(loanBonusConfiguration.getGlAccountToDebit().longValue(), new JournalEntryAssociationParametersData());
+        }
+        GLAccountData accountToCredit = null;
+        if(loanBonusConfiguration.getGlAccountToDebit() != null){
+            accountToCredit = glAccountReadPlatformService.retrieveGLAccountById(loanBonusConfiguration.getGlAccountToCredit().longValue(), new JournalEntryAssociationParametersData());
+        }
+
         LoanBonusConfigurationData data = new LoanBonusConfigurationData( loanBonusConfiguration.getId(),
                 loanBonusConfiguration.getDaysInArrear(),
                 loanBonusConfiguration.getDaysToCollectBonus(),
-                glAccountReadPlatformService.retrieveGLAccountById(loanBonusConfiguration.getGlAccountToDebit().longValue(), new JournalEntryAssociationParametersData()),
-                glAccountReadPlatformService.retrieveGLAccountById(loanBonusConfiguration.getGlAccountToCredit().longValue(), new JournalEntryAssociationParametersData()),
+                accountToDebit,
+                accountToCredit,
                 cycles,
                 new DateTime(loanBonusConfiguration.getCreatedAt()),
                 new DateTime(loanBonusConfiguration.getUpdatedAt()),
